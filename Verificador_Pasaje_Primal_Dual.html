@@ -404,6 +404,50 @@
             border-radius: 4px;
         }
 
+        /* Highlighting for Alternative Solution 0* */
+        .hl-alt-col {
+            background: rgba(245, 158, 11, 0.15) !important;
+            border-bottom: 2px solid #f59e0b !important;
+        }
+
+        .hl-alt-zero {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.35), rgba(217, 119, 6, 0.2)) !important;
+            border: 2px solid #f59e0b !important;
+            box-shadow: inset 0 0 10px rgba(245, 158, 11, 0.5), 0 0 14px rgba(245, 158, 11, 0.45) !important;
+            border-radius: 6px !important;
+            padding: 4px 6px !important;
+            position: relative;
+        }
+
+        .alt-zero-pill {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1px;
+        }
+
+        .alt-zero-num {
+            font-size: 1.15rem;
+            font-weight: 900;
+            color: #fbbf24;
+            text-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
+            font-family: var(--font-mono);
+        }
+
+        .alt-zero-label {
+            font-size: 0.62rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            background: #78350f;
+            color: #fef3c7;
+            padding: 1px 5px;
+            border-radius: 3px;
+            border: 1px solid #d97706;
+            white-space: nowrap;
+        }
+
         .verdict-card {
             background: rgba(15, 23, 42, 0.7);
             border: 1px solid var(--border);
@@ -657,6 +701,7 @@
                 </div>
                 <div class="preset-buttons">
                     <button class="btn-preset active" data-preset="slides_metal" onclick="loadPreset('slides_metal')">Diapos 37-45: Taller Metalúrgico (Máx)</button>
+                    <button class="btn-preset" data-preset="casos_particulares_alt" onclick="loadPreset('casos_particulares_alt')">Diapo 20: Soluciones Alternativas (0*)</button>
                     <button class="btn-preset" data-preset="ex_4_2" onclick="loadPreset('ex_4_2')">Ejercicio 4.2 ➔ 5.6 (Máx, 3 variables)</button>
                     <button class="btn-preset" data-preset="ex_4_9" onclick="loadPreset('ex_4_9')">Ejercicio 4.9 ➔ 5.8 (Máx, 2 variables)</button>
                     <button class="btn-preset" data-preset="ex_4_12" onclick="loadPreset('ex_4_12')">Ejercicio 4.12 ➔ 5.9 (Mín: &ge;, &le;)</button>
@@ -866,6 +911,7 @@
                             <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">Ejercicio:</label>
                             <select id="verifier-preset-select" class="form-control" style="width: auto; padding: 4px 8px; font-size: 0.8rem;" onchange="loadPreset(this.value)">
                                 <option value="slides_metal">Diapos 37-45: Taller Metalúrgico (Máx)</option>
+                                <option value="casos_particulares_alt">Diapo 20: Soluciones Alternativas (0*)</option>
                                 <option value="ex_4_2">Ejercicio 4.2 ➔ 5.6 (Máx, 3 variables)</option>
                                 <option value="ex_4_9">Ejercicio 4.9 ➔ 5.8 (Máx, 2 variables)</option>
                                 <option value="ex_4_12">Ejercicio 4.12 ➔ 5.9 (Mín: &ge;, &le;)</option>
@@ -1038,6 +1084,7 @@
             mul(other) { return new Fraction(this.n * other.n, this.d * other.d); }
             div(other) { return new Fraction(this.n * other.d, this.d * other.n); }
             neg() { return new Fraction(-this.n, this.d); }
+            toNumber() { return this.d !== 0 ? (this.n / this.d) : 0; }
             toTex() { return this.d === 1 ? `${this.n}` : `${this.n}/${this.d}`; }
             toString() { return this.toTex(); }
             equals(other) { return this.n === other.n && this.d === other.d; }
@@ -1151,6 +1198,28 @@
 
         // PRESETS DATABASE
         const PRESETS = {
+            casos_particulares_alt: {
+                id: 'casos_particulares_alt',
+                title: 'Diapo 20: Soluciones Alternativas (0*)',
+                sense: 'MAX',
+                dualSense: 'MIN',
+                Z: F(12),
+                varNames: ['x1', 'x2', 'x3', 'x4', 'x5'],
+                dualVarNames: ['y4', 'y5', 'y1', 'y2', 'y3'],
+                origCosts: [F(3), F(3), F(0), F(0), F(0)],
+                origResources: [F(48), F(42), F(36)],
+                eqCoeffs: [
+                    { coeffs: [F(6), F(16)], sign: '<=', rhs: F(48) },
+                    { coeffs: [F(12), F(6)], sign: '<=', rhs: F(42) },
+                    { coeffs: [F(9), F(9)], sign: '<=', rhs: F(36) }
+                ],
+                base: [
+                    { var: 'x3', ck: F(0), B: F(14), row: [F(0), F(0), F(1), F(5,3), F(-26,9)] },
+                    { var: 'x1', ck: F(3), B: F(3), row: [F(1), F(0), F(0), F(1,6), F(-1,9)] },
+                    { var: 'x2', ck: F(3), B: F(1), row: [F(0), F(1), F(0), F(-1,6), F(2,9)] }
+                ],
+                zj_cj: [F(0), F(0), F(0), F(0), F(1,3)]
+            },
             slides_metal: {
                 id: 'slides_metal',
                 title: 'Ejemplo Diapos 37-45: Taller Metalúrgico',
@@ -1302,7 +1371,6 @@
     const constraintCols = [];
     const artCols = [];
 
-    // One constraint variable per restriction (matching x_{n + i + 1})
     constrs.forEach((c, i) => {
         const varIdxNum = n + i + 1;
         if (c.sign === '<=') {
@@ -1321,7 +1389,6 @@
             costs.push(new BigM(F(0), F(0)));
             constraintCols.push({ row: i, col: eColIdx, val: F(-1), name: eName });
 
-            // Artificial variable mu_{i+1}
             const uName = `\\mu_${i + 1}`;
             varNames.push(uName);
             const uColIdx = varNames.length - 1;
@@ -1504,12 +1571,99 @@
             }
             targetVal = minVal;
             if (inCol === -1 || minVal.gte(new BigM(F(0), F(0)))) {
-                iterations.push({
-                    isOptimal: true,
-                    isFinalOptimal: true,
-                    snap,
-                    explanation: '<b>¡Condición de optimalidad alcanzada!</b> Todos los indicadores netos $z_j - c_j \\ge 0$. Ninguna variable no básica puede ingresar para incrementar el funcional.'
-                });
+                // Optimal condition reached for MAX
+                // Check for alternative solutions (non-basic variable with zj - cj = 0 and a_ij > 0)
+                let altCandidateCol = -1;
+                let altOutRow = -1;
+                let altMinRatio = null;
+                let altRatios = [];
+
+                for (let j = 0; j < totalCols; j++) {
+                    const inBase = base.includes(j);
+                    if (!inBase && !artCols.some(ac => ac.col === j) && snap.zj_cj[j].isZero()) {
+                        let candidateRatios = [];
+                        let candidateMinRatio = null;
+                        let candidateOutRow = -1;
+                        for (let i = 0; i < m; i++) {
+                            if (A[i][j].gt(F(0))) {
+                                let ratio = A[i][totalCols].div(A[i][j]);
+                                candidateRatios.push({ row: i, ratio });
+                                if (candidateMinRatio === null || ratio.lt(candidateMinRatio)) {
+                                    candidateMinRatio = ratio;
+                                    candidateOutRow = i;
+                                }
+                            } else {
+                                candidateRatios.push({ row: i, ratio: null });
+                            }
+                        }
+                        if (candidateOutRow !== -1) {
+                            altCandidateCol = j;
+                            altOutRow = candidateOutRow;
+                            altMinRatio = candidateMinRatio;
+                            altRatios = candidateRatios;
+                            break;
+                        }
+                    }
+                }
+
+                if (altCandidateCol !== -1) {
+                    const altInVar = varNames[altCandidateCol];
+                    const altOutVar = varNames[base[altOutRow]];
+
+                    iterations.push({
+                        isOptimal: true,
+                        isFinalOptimal: false,
+                        isAlternativeOptimal1: true,
+                        snap: snap,
+                        inCol: altCandidateCol,
+                        inVar: altInVar,
+                        outRow: altOutRow,
+                        outVar: altOutVar,
+                        pivotVal: A[altOutRow][altCandidateCol],
+                        ratios: altRatios,
+                        altCandidateCol: altCandidateCol,
+                        altCandidateVar: altInVar,
+                        explanation: `<b>¡Condición de optimalidad alcanzada (Solución Óptima 1)!</b> Todos los indicadores netos $z_j - c_j \\ge 0$.<br>` +
+                                     `⚠️ <b>Detección de Solución Alternativa:</b> La variable no básica <b>${altInVar}</b> tiene costo reducido <b>$0^*$</b> ($z_j - c_j = 0$) con coeficientes técnicos positivos ($a_{i,j} > 0$).<br>` +
+                                     `• Al ingresar a la base <b>${altInVar}</b> en reemplazo de <b>${altOutVar}</b> (ratio mínimo $\\theta = ${altMinRatio.toTex()}$), se obtiene una <b>segunda solución básica factible óptima</b> con el mismo valor funcional $Z = ${snap.Z.toTex()}.<br>` +
+                                     `👉 <i>Hacé clic en <b>"Siguiente ➔"</b> para visualizar la Tabla Óptima Alternativa 2 con la nueva base.</i>`
+                    });
+
+                    // Perform pivot to Table 2
+                    let pivot = A[altOutRow][altCandidateCol];
+                    A[altOutRow] = A[altOutRow].map(x => x.div(pivot));
+                    for (let i = 0; i < m; i++) {
+                        if (i !== altOutRow) {
+                            let factor = A[i][altCandidateCol];
+                            A[i] = A[i].map((val, k) => val.sub(factor.mul(A[altOutRow][k])));
+                        }
+                    }
+                    const returningCol = base[altOutRow];
+                    base[altOutRow] = altCandidateCol;
+
+                    const snap2 = snapshotTableau(base, A);
+
+                    iterations.push({
+                        isOptimal: true,
+                        isFinalOptimal: true,
+                        isAlternativeOptimal2: true,
+                        snap: snap2,
+                        altReturningCol: returningCol,
+                        altReturningVar: varNames[returningCol],
+                        explanation: `<b>¡Solución Óptima Alternativa 2 Alcanzada!</b><br>` +
+                                     `• Ingresó la variable <b>${altInVar}</b> a la base y salió <b>${altOutVar}</b>.<br>` +
+                                     `• El valor del funcional permanece óptimo e idéntico: <b>$Z = ${snap2.Z.toTex()}$</b>.<br>` +
+                                     `• En la fila de indicadores netos, la variable saliente <b>${varNames[returningCol]}</b> ahora presenta indicador <b>$0^*$</b> (pivoteo de retorno hacia la Solución 1).<br>` +
+                                     `👈 <i>Hacé clic en <b>"⬅ Anterior"</b> para comparar con la Solución 1.</i>`
+                    });
+                } else {
+                    iterations.push({
+                        isOptimal: true,
+                        isFinalOptimal: true,
+                        snap,
+                        explanation: '<b>¡Condición de optimalidad alcanzada!</b> Todos los indicadores netos $z_j - c_j \\ge 0$. Ninguna variable no básica puede ingresar para incrementar el funcional.'
+                    });
+                }
                 break;
             }
         } else {
@@ -1523,12 +1677,97 @@
             }
             targetVal = maxVal;
             if (inCol === -1 || maxVal.lte(new BigM(F(0), F(0)))) {
-                iterations.push({
-                    isOptimal: true,
-                    isFinalOptimal: true,
-                    snap,
-                    explanation: '<b>¡Condición de optimalidad alcanzada!</b> Todos los indicadores netos $z_j - c_j \\le 0$. Ninguna variable no básica puede ingresar para reducir el funcional.'
-                });
+                // Optimal condition reached for MIN
+                let altCandidateCol = -1;
+                let altOutRow = -1;
+                let altMinRatio = null;
+                let altRatios = [];
+
+                for (let j = 0; j < totalCols; j++) {
+                    const inBase = base.includes(j);
+                    if (!inBase && !artCols.some(ac => ac.col === j) && snap.zj_cj[j].isZero()) {
+                        let candidateRatios = [];
+                        let candidateMinRatio = null;
+                        let candidateOutRow = -1;
+                        for (let i = 0; i < m; i++) {
+                            if (A[i][j].gt(F(0))) {
+                                let ratio = A[i][totalCols].div(A[i][j]);
+                                candidateRatios.push({ row: i, ratio });
+                                if (candidateMinRatio === null || ratio.lt(candidateMinRatio)) {
+                                    candidateMinRatio = ratio;
+                                    candidateOutRow = i;
+                                }
+                            } else {
+                                candidateRatios.push({ row: i, ratio: null });
+                            }
+                        }
+                        if (candidateOutRow !== -1) {
+                            altCandidateCol = j;
+                            altOutRow = candidateOutRow;
+                            altMinRatio = candidateMinRatio;
+                            altRatios = candidateRatios;
+                            break;
+                        }
+                    }
+                }
+
+                if (altCandidateCol !== -1) {
+                    const altInVar = varNames[altCandidateCol];
+                    const altOutVar = varNames[base[altOutRow]];
+
+                    iterations.push({
+                        isOptimal: true,
+                        isFinalOptimal: false,
+                        isAlternativeOptimal1: true,
+                        snap: snap,
+                        inCol: altCandidateCol,
+                        inVar: altInVar,
+                        outRow: altOutRow,
+                        outVar: altOutVar,
+                        pivotVal: A[altOutRow][altCandidateCol],
+                        ratios: altRatios,
+                        altCandidateCol: altCandidateCol,
+                        altCandidateVar: altInVar,
+                        explanation: `<b>¡Condición de optimalidad alcanzada (Solución Óptima 1)!</b> Todos los indicadores netos $z_j - c_j \\le 0$.<br>` +
+                                     `⚠️ <b>Detección de Solución Alternativa:</b> La variable no básica <b>${altInVar}</b> tiene costo reducido <b>$0^*$</b> ($z_j - c_j = 0$) con coeficientes técnicos positivos ($a_{i,j} > 0$).<br>` +
+                                     `• Al ingresar a la base <b>${altInVar}</b> en reemplazo de <b>${altOutVar}</b> (ratio mínimo $\\theta = ${altMinRatio.toTex()}$), se obtiene una <b>segunda solución básica factible óptima</b> con el mismo valor funcional $Z = ${snap.Z.toTex()}.<br>` +
+                                     `👉 <i>Hacé clic en <b>"Siguiente ➔"</b> para visualizar la Tabla Óptima Alternativa 2 con la nueva base.</i>`
+                    });
+
+                    let pivot = A[altOutRow][altCandidateCol];
+                    A[altOutRow] = A[altOutRow].map(x => x.div(pivot));
+                    for (let i = 0; i < m; i++) {
+                        if (i !== altOutRow) {
+                            let factor = A[i][altCandidateCol];
+                            A[i] = A[i].map((val, k) => val.sub(factor.mul(A[altOutRow][k])));
+                        }
+                    }
+                    const returningCol = base[altOutRow];
+                    base[altOutRow] = altCandidateCol;
+
+                    const snap2 = snapshotTableau(base, A);
+
+                    iterations.push({
+                        isOptimal: true,
+                        isFinalOptimal: true,
+                        isAlternativeOptimal2: true,
+                        snap: snap2,
+                        altReturningCol: returningCol,
+                        altReturningVar: varNames[returningCol],
+                        explanation: `<b>¡Solución Óptima Alternativa 2 Alcanzada!</b><br>` +
+                                     `• Ingresó la variable <b>${altInVar}</b> a la base y salió <b>${altOutVar}</b>.<br>` +
+                                     `• El valor del funcional permanece óptimo e idéntico: <b>$Z = ${snap2.Z.toTex()}$</b>.<br>` +
+                                     `• En la fila de indicadores netos, la variable saliente <b>${varNames[returningCol]}</b> ahora presenta indicador <b>$0^*$</b> (pivoteo de retorno hacia la Solución 1).<br>` +
+                                     `👈 <i>Hacé clic en <b>"⬅ Anterior"</b> para comparar con la Solución 1.</i>`
+                    });
+                } else {
+                    iterations.push({
+                        isOptimal: true,
+                        isFinalOptimal: true,
+                        snap,
+                        explanation: '<b>¡Condición de optimalidad alcanzada!</b> Todos los indicadores netos $z_j - c_j \\le 0$. Ninguna variable no básica puede ingresar para reducir el funcional.'
+                    });
+                }
                 break;
             }
         }
@@ -1613,6 +1852,10 @@
         };
     }
 
+    const altIter1 = iterations.find(it => it.isAlternativeOptimal1);
+    const altIter2 = iterations.find(it => it.isAlternativeOptimal2);
+    const hasAlternatives = !!(altIter1 && altIter2);
+
     const finalSnap = iterations[iterations.length - 1].snap;
 
     // Check Incompatibility: any artificial variable remains in base with B_i > 0
@@ -1632,7 +1875,7 @@
             verdict: 'INCOMPATIBLE',
             title: 'Sistema Incompatible',
             badgeClass: 'incompatible',
-            verdictMsg: `El sistema no posee ninguna solución factible ($\\\\mathcal{R} = \\\\emptyset$). La variable artificial <b>${incompArtVar}</b> no pudo eliminarse de la base y mantiene la penalización $M$ en el funcional ($Z = ${finalSnap.Z.toTex()}$).`,
+            verdictMsg: `El sistema no posee ninguna solución factible ($\\mathcal{R} = \\emptyset$). La variable artificial <b>${incompArtVar}</b> no pudo eliminarse de la base y mantiene la penalización $M$ en el funcional ($Z = ${finalSnap.Z.toTex()}$).`,
             iterations,
             sense: objSense,
             dualSense: (objSense === 'MAX') ? 'MIN' : 'MAX',
@@ -1654,27 +1897,13 @@
 
     let finalZ = finalSnap.Z.q.isZero() ? finalSnap.Z.p : finalSnap.Z;
 
-    // Degeneracy
+    // Degeneracy (check in base 1 if alternative exists)
     let isDegenerate = false;
+    const baseToCheck = altIter1 ? altIter1.snap.baseRows : finalSnap.baseRows;
     for (let i = 0; i < m; i++) {
-        if (finalSnap.baseRows[i].B.isZero()) {
+        if (baseToCheck[i].B.isZero()) {
             isDegenerate = true;
             break;
-        }
-    }
-
-    // Alternative solutions
-    let hasAlternatives = false;
-    let altVar = null;
-    for (let j = 0; j < totalCols; j++) {
-        const inBase = base.includes(j);
-        if (!inBase && !artCols.some(ac => ac.col === j) && finalSnap.zj_cj[j].isZero()) {
-            const canPivot = A.some(row => row[j].gt(F(0)));
-            if (canPivot) {
-                hasAlternatives = true;
-                altVar = varNames[j];
-                break;
-            }
         }
     }
 
@@ -1683,16 +1912,39 @@
     let badgeClass = 'optimal';
     let verdictMsg = `Se alcanzó la solución óptima única con $Z = ${finalZ.toTex()}$. Todos los indicadores de variables no básicas son estrictamente no nulos.`;
 
-    if (hasAlternatives && isDegenerate) {
-        verdict = 'OPTIMAL_ALT_DEGENERATE';
-        verdictTitle = 'Soluciones Múltiples (Alternativas) y Degenerada';
+    let alternativeData = null;
+
+    if (hasAlternatives) {
+        verdict = isDegenerate ? 'OPTIMAL_ALT_DEGENERATE' : 'OPTIMAL_ALTERNATIVES';
+        verdictTitle = isDegenerate ? 'Soluciones Múltiples (Alternativas) y Degenerada' : 'Soluciones Múltiples (Alternativas)';
         badgeClass = 'alternative';
-        verdictMsg = `Existen infinitas soluciones óptimas con $Z = ${finalZ.toTex()}$ (la variable no básica ${altVar} tiene $z_j - c_j = 0$), y además la base es degenerada ($B = 0$).`;
-    } else if (hasAlternatives) {
-        verdict = 'OPTIMAL_ALTERNATIVES';
-        verdictTitle = 'Soluciones Múltiples (Alternativas)';
-        badgeClass = 'alternative';
-        verdictMsg = `Existen infinitas soluciones óptimas con el mismo valor $Z = ${finalZ.toTex()}$. La variable no básica <b>${altVar}</b> tiene indicador neto $z_j - c_j = 0$.`;
+        verdictMsg = `Existen <b>infinitas soluciones óptimas</b> con el mismo valor del funcional $Z^* = ${finalZ.toTex()}$. En la tabla óptima 1, la variable no básica <b>${altIter1.altCandidateVar}</b> presenta costo reducido <b>$0^*$</b>, lo que permite pivotear hacia la tabla óptima alternativa 2.`;
+
+        const totalV = varNames.length;
+        const v1 = new Array(totalV).fill(F(0));
+        const v2 = new Array(totalV).fill(F(0));
+
+        altIter1.snap.baseRows.forEach(b => { v1[b.colIdx] = b.B; });
+        altIter2.snap.baseRows.forEach(b => { v2[b.colIdx] = b.B; });
+
+        alternativeData = {
+            hasAlternatives: true,
+            varNames: [...varNames],
+            nDecisionVars: n,
+            altInVar: altIter1.altCandidateVar,
+            altOutVar: altIter1.outVar,
+            returningVar: altIter2.altReturningVar,
+            sol1: {
+                baseRows: altIter1.snap.baseRows,
+                vector: v1,
+                Z: altIter1.snap.Z
+            },
+            sol2: {
+                baseRows: altIter2.snap.baseRows,
+                vector: v2,
+                Z: altIter2.snap.Z
+            }
+        };
     } else if (isDegenerate) {
         verdict = 'OPTIMAL_DEGENERATE';
         verdictTitle = 'Solución Óptima Degenerada';
@@ -1703,6 +1955,8 @@
     const origResources = constrs.map(c => c.rhs);
     const origCosts = [...objCoeffs];
     for (let i = 0; i < constraintCols.length; i++) origCosts.push(F(0));
+
+    const primarySnap = altIter1 ? altIter1.snap : finalSnap;
 
     return {
         id: 'solved_primal',
@@ -1718,19 +1972,19 @@
         origCosts,
         origResources,
         eqCoeffs: constrs,
-        base: finalSnap.baseRows.map(b => ({
+        base: primarySnap.baseRows.map(b => ({
             var: b.var,
             ck: (b.ck.q && b.ck.q.isZero()) ? b.ck.p : b.ck,
             B: b.B,
             row: b.row
         })),
-        zj_cj: finalSnap.zj_cj.map(z => (z.q && z.q.isZero()) ? z.p : z),
+        zj_cj: primarySnap.zj_cj.map(z => (z.q && z.q.isZero()) ? z.p : z),
         iterations,
-        standardForm
+        standardForm,
+        alternativeData
     };
 }
 
-        // Backward compatibility wrapper
         function solveSimplexPrimal(objSense, objCoeffs, constraints) {
             return solveSimplexWithHistory(objSense, objCoeffs, constraints);
         }
@@ -2101,7 +2355,19 @@
             const maxIter = iters.length - 1;
 
             // Update badge & phase
-            const badgeText = (currentSimplexIter === 0) ? 'Tabla Inicial' : (currentSimplexIter === maxIter ? 'Tabla Final' : `Iteración ${currentSimplexIter}`);
+            let badgeText = '';
+            if (cur.isAlternativeOptimal1) {
+                badgeText = `Iteración ${currentSimplexIter} (Tabla Óptima 1 — 0* Detectado)`;
+            } else if (cur.isAlternativeOptimal2) {
+                badgeText = `Iteración ${currentSimplexIter} (Tabla Óptima Alternativa 2)`;
+            } else if (currentSimplexIter === 0) {
+                badgeText = 'Tabla Inicial';
+            } else if (currentSimplexIter === maxIter) {
+                badgeText = 'Tabla Final';
+            } else {
+                badgeText = `Iteración ${currentSimplexIter}`;
+            }
+
             document.getElementById('simplex-step-badge').innerText = badgeText;
             document.getElementById('simplex-step-phase').innerText = cur.snap ? cur.snap.phaseName : 'Método Simplex';
 
@@ -2120,7 +2386,14 @@
                 let html = `<table class="simplex-table"><thead><tr>`;
                 html += `<th>$c_k$</th><th>$x_k$</th><th>$B$</th>`;
                 snap.cols.forEach((col, cIdx) => {
-                    const hlCol = (cIdx === cur.inCol) ? 'hl-entering' : '';
+                    let hlCol = '';
+                    if (cur.isAlternativeOptimal1 && cIdx === cur.altCandidateCol) {
+                        hlCol = 'hl-alt-col';
+                    } else if (cur.isAlternativeOptimal2 && cIdx === cur.altReturningCol) {
+                        hlCol = 'hl-alt-col';
+                    } else if (cIdx === cur.inCol) {
+                        hlCol = 'hl-entering';
+                    }
                     const costTex = (snap.costs && snap.costs[cIdx]) ? snap.costs[cIdx].toTex() : '';
                     const costSub = costTex !== '' ? `<div style="font-size:0.75rem; font-weight:normal; opacity:0.85; margin-bottom:2px;">$c_j = ${costTex}$</div>` : '';
                     html += `<th class="${hlCol}">${costSub}${formatVarMath(col)}</th>`;
@@ -2141,6 +2414,10 @@
                         let cellClass = '';
                         if (rIdx === cur.outRow && cIdx === cur.inCol) {
                             cellClass = 'hl-pivot';
+                        } else if (cur.isAlternativeOptimal1 && cIdx === cur.altCandidateCol) {
+                            cellClass = 'hl-alt-col';
+                        } else if (cur.isAlternativeOptimal2 && cIdx === cur.altReturningCol) {
+                            cellClass = 'hl-alt-col';
                         } else if (cIdx === cur.inCol) {
                             cellClass = 'hl-entering';
                         } else if (rIdx === cur.outRow) {
@@ -2164,28 +2441,124 @@
                 html += `<td></td><td>$z_j - c_j$</td>`;
                 html += `<td><b>${snap.Z.toTex()}</b></td>`;
                 snap.zj_cj.forEach((zVal, cIdx) => {
-                    const hlCol = (cIdx === cur.inCol) ? 'hl-entering' : '';
-                    html += `<td class="${hlCol}"><b>${zVal.toTex()}</b></td>`;
+                    let isAltZero = false;
+                    if (cur.isAlternativeOptimal1 && cIdx === cur.altCandidateCol) {
+                        isAltZero = true;
+                    } else if (cur.isAlternativeOptimal2 && cIdx === cur.altReturningCol) {
+                        isAltZero = true;
+                    }
+
+                    if (isAltZero) {
+                        html += `<td class="hl-alt-zero" title="Solución alternativa: indicador zj - cj = 0* en variable no básica">
+                            <div class="alt-zero-pill">
+                                <span class="alt-zero-num">0*</span>
+                                <span class="alt-zero-label">Sol. Alternativa</span>
+                            </div>
+                        </td>`;
+                    } else {
+                        const hlCol = (cIdx === cur.inCol) ? 'hl-entering' : '';
+                        html += `<td class="${hlCol}"><b>${zVal.toTex()}</b></td>`;
+                    }
                 });
                 html += `<td></td></tr></tbody></table>`;
 
                 document.getElementById('simplex-tableau-container').innerHTML = html;
             }
 
-            // Verdict Container on Final Iteration
+            // Verdict Container on any optimal table or final iteration
             const verdictBox = document.getElementById('simplex-verdict-container');
-            if (currentSimplexIter === maxIter && history.verdict) {
+            const showVerdict = cur.isOptimal || currentSimplexIter === maxIter;
+
+            if (showVerdict && history.verdict) {
                 let badgeClass = history.badgeClass || 'optimal';
                 let html = `<div class="verdict-card">
                     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
                         <span class="verdict-badge ${badgeClass}">⚖️ Veredicto: ${history.title}</span>
-                        <span style="font-family: var(--font-mono); font-weight: 700; color: var(--primary);">Z* = ${history.Z ? history.Z.toTex() : '---'}</span>
+                        <span style="font-family: var(--font-mono); font-weight: 700; color: var(--primary); font-size: 1.1rem;">Z* = ${history.Z ? history.Z.toTex() : '---'}</span>
                     </div>
                     <p style="margin: 0; color: var(--text); font-size: 0.95rem; line-height: 1.5;">${history.verdictMsg}</p>`;
 
-                if (history.base && history.base.length > 0) {
+                if (history.alternativeData && history.alternativeData.hasAlternatives) {
+                    const alt = history.alternativeData;
+                    const vNames = alt.varNames;
+
+                    const xVarCol = `\\begin{pmatrix} ` + vNames.map(v => formatVarMath(v).replace(/\$/g, '')).join(' \\\\ ') + ` \\end{pmatrix}`;
+                    const v1Col = `\\begin{pmatrix} ` + alt.sol1.vector.map(val => val.toTex()).join(' \\\\ ') + ` \\end{pmatrix}`;
+                    const v2Col = `\\begin{pmatrix} ` + alt.sol2.vector.map(val => val.toTex()).join(' \\\\ ') + ` \\end{pmatrix}`;
+
+                    const decNames = vNames.slice(0, alt.nDecisionVars);
+                    const decVarCol = `\\begin{pmatrix} ` + decNames.map(v => formatVarMath(v).replace(/\$/g, '')).join(' \\\\ ') + ` \\end{pmatrix}`;
+                    const decV1Col = `\\begin{pmatrix} ` + alt.sol1.vector.slice(0, alt.nDecisionVars).map(val => val.toTex()).join(' \\\\ ') + ` \\end{pmatrix}`;
+                    const decV2Col = `\\begin{pmatrix} ` + alt.sol2.vector.slice(0, alt.nDecisionVars).map(val => val.toTex()).join(' \\\\ ') + ` \\end{pmatrix}`;
+
+                    html += `
+                    <div class="alt-solutions-container" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 8px; padding: 14px; margin-top: 10px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+                            <span style="font-weight: 700; color: #fbbf24; font-size: 0.95rem;">
+                                📐 Expresión General de Soluciones Alternativas (Combinación Lineal Convexa)
+                            </span>
+                            <span style="font-size: 0.8rem; background: rgba(245, 158, 11, 0.15); color: #fde68a; padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(245, 158, 11, 0.3);">
+                                0 ≤ α ≤ 1
+                            </span>
+                        </div>
+
+                        <p style="font-size: 0.88rem; color: var(--text-muted); margin: 0 0 10px 0;">
+                            Cualquier punto sobre el segmento que conecta ambos vértices óptimos es también una solución factible óptima con <b>$Z^* = ${history.Z.toTex()}$</b>:
+                        </p>
+
+                        <div style="background: rgba(0, 0, 0, 0.35); padding: 12px; border-radius: 6px; overflow-x: auto; text-align: center; margin-bottom: 12px;">
+                            $$X = \\alpha \\cdot X^{(1)} + (1 - \\alpha) \\cdot X^{(2)}, \\quad 0 \\le \\alpha \\le 1$$
+                            $$X = ${xVarCol} = \\alpha ${v1Col} + (1 - \\alpha) ${v2Col}, \\quad 0 \\le \\alpha \\le 1$$
+                        </div>
+
+                        <div style="font-size: 0.88rem; margin-bottom: 8px; color: #cbd5e1;">
+                            <b>Para las variables de decisión:</b>
+                            <div style="background: rgba(0,0,0,0.25); padding: 8px; border-radius: 6px; margin-top: 4px; text-align: center;">
+                                $$X_{\\text{dec}} = ${decVarCol} = \\alpha ${decV1Col} + (1 - \\alpha) ${decV2Col}, \\quad 0 \\le \\alpha \\le 1$$
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin-top: 10px;">
+                            <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 6px; padding: 10px;">
+                                <div style="font-weight: 700; color: #34d399; font-size: 0.85rem; margin-bottom: 4px;">
+                                    🔹 Solución Básica Factible 1 (α = 1)
+                                </div>
+                                <div style="font-size: 0.85rem; color: #e2e8f0;">
+                                    <b>Base:</b> ${alt.sol1.baseRows.map(b => `${formatVarMath(b.var)} = ${b.B.toTex()}`).join(', ')}<br>
+                                    <b>Variable no básica con $0^*$:</b> ${formatVarMath(alt.altInVar)} ($z - c = 0^*$)
+                                </div>
+                            </div>
+
+                            <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 10px;">
+                                <div style="font-weight: 700; color: #38bdf8; font-size: 0.85rem; margin-bottom: 4px;">
+                                    🔹 Solución Básica Factible 2 (α = 0)
+                                </div>
+                                <div style="font-size: 0.85rem; color: #e2e8f0;">
+                                    <b>Base:</b> ${alt.sol2.baseRows.map(b => `${formatVarMath(b.var)} = ${b.B.toTex()}`).join(', ')}<br>
+                                    <b>Variable no básica con $0^*$:</b> ${formatVarMath(alt.returningVar)} ($z - c = 0^*$)
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Interactive alpha slider -->
+                        <div style="margin-top: 12px; background: rgba(0,0,0,0.25); border-radius: 6px; padding: 10px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                                <span style="font-size: 0.85rem; font-weight: 600; color: #fde68a;">
+                                    🎛️ Explorador interactivo del segmento de soluciones:
+                                </span>
+                                <span id="alpha-val-display" style="font-family: var(--font-mono); font-weight: 700; color: #38bdf8; font-size: 0.9rem;">
+                                    α = 0.50
+                                </span>
+                            </div>
+                            <input type="range" id="alpha-slider" min="0" max="1" step="0.05" value="0.5" 
+                                   style="width: 100%; accent-color: #38bdf8; cursor: pointer;"
+                                   oninput="updateAlphaSolution(this.value)">
+                            <div id="alpha-solution-output" style="margin-top: 6px; font-size: 0.85rem; text-align: center; color: #f1f5f9;"></div>
+                        </div>
+                    </div>`;
+                } else if (history.base && history.base.length > 0) {
                     const solVars = history.base.map(b => `${formatVarMath(b.var)} = ${b.B.toTex()}`).join(', ');
-                    html += `<div style="background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 6px; font-size: 0.9rem;">
+                    html += `<div style="background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; margin-top: 8px;">
                         <b>Variables básicas en el óptimo:</b> ${solVars}
                     </div>`;
                 }
@@ -2193,6 +2566,10 @@
                 html += `</div>`;
                 verdictBox.innerHTML = html;
                 verdictBox.style.display = 'block';
+
+                if (history.alternativeData && history.alternativeData.hasAlternatives) {
+                    setTimeout(() => updateAlphaSolution(0.5), 10);
+                }
             } else {
                 verdictBox.style.display = 'none';
                 verdictBox.innerHTML = '';
@@ -2201,7 +2578,31 @@
             renderLatex(document.getElementById('panel-simplex'));
         }
 
-        // BUTTON 1 (LEGACY): FORMULAR DUAL SIMBÓLICO
+        window.updateAlphaSolution = function(alphaVal) {
+            if (!currentSimplexHistory || !currentSimplexHistory.alternativeData) return;
+            const alphaNum = parseFloat(alphaVal);
+            const alphaDisp = document.getElementById('alpha-val-display');
+            if (alphaDisp) alphaDisp.innerText = `α = ${alphaNum.toFixed(2)}  (1 - α = ${(1 - alphaNum).toFixed(2)})`;
+
+            const alt = currentSimplexHistory.alternativeData;
+            const vNames = alt.varNames;
+            const nDec = alt.nDecisionVars;
+
+            let resStrs = [];
+            for (let j = 0; j < nDec; j++) {
+                const v1 = alt.sol1.vector[j].toNumber();
+                const v2 = alt.sol2.vector[j].toNumber();
+                const interp = alphaNum * v1 + (1 - alphaNum) * v2;
+                resStrs.push(`${formatVarMath(vNames[j])} = ${Number.isInteger(interp) ? interp : interp.toFixed(3)}`);
+            }
+
+            const outElem = document.getElementById('alpha-solution-output');
+            if (outElem) {
+                outElem.innerHTML = `<b>Punto evaluado:</b> ${resStrs.join(', ')} &nbsp;⟶&nbsp; <b style="color: #34d399;">Z = ${currentSimplexHistory.Z.toTex()}</b>`;
+                renderLatex(outElem);
+            }
+        };
+
         function generateDualEquationsOnly() {
             const { sense, nVars, nRows, c, constraints } = readCurrentEquations();
             const dualSense = (sense === 'MAX') ? 'MIN' : 'MAX';
