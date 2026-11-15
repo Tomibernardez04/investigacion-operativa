@@ -1,0 +1,8 @@
+# Ignorar todo el contenido de la carpeta por defecto
+/*
+
+# Excepciones permitidas para el repositorio
+!/.gitignore
+!/README.md
+!/Verificador_Pasaje_Primal_Dual.html
+!/index.html

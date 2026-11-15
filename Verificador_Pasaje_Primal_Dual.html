@@ -1,0 +1,2977 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simplex ⇄ Dual: Formulación, Resolución y Pasaje de Tablas</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- KaTeX -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+
+    <style>
+        :root {
+            --bg: #0b0f19;
+            --surface: #131b2e;
+            --surface-hover: #1c2742;
+            --border: #243354;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --primary: #38bdf8;
+            --primary-glow: rgba(56, 189, 248, 0.25);
+            --accent-primal: #3b82f6;
+            --accent-dual: #f97316;
+            --accent-dual-glow: rgba(249, 115, 22, 0.25);
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --highlight: #facc15;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --font-mono: 'Fira Code', monospace;
+        }
+
+        html {
+            font-size: 13.5px; /* Compact base scale (matches ~80-84% zoom density) */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            line-height: 1.45;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: rgba(19, 27, 46, 0.95);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 24px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-icon {
+            font-size: 28px;
+            background: linear-gradient(135deg, var(--primary), var(--accent-dual));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-title h1 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .header-title p {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: rgba(11, 15, 25, 0.7);
+            padding: 4px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            gap: 4px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-main);
+            background: var(--surface-hover);
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: #041019;
+            box-shadow: 0 0 12px var(--primary-glow);
+        }
+
+        main {
+            flex: 1;
+            max-width: 98%;
+            width: 100%;
+            margin: 0 auto;
+            padding: 12px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        /* Preset Bar */
+        .preset-bar {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .preset-title {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .preset-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-preset {
+            background: var(--surface-hover);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 5px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-preset:hover {
+            border-color: var(--primary);
+            background: #253356;
+            transform: translateY(-1px);
+        }
+
+        .btn-preset.active {
+            border-color: var(--accent-dual);
+            background: rgba(249, 115, 22, 0.15);
+            color: var(--accent-dual);
+        }
+
+        /* Cards & Stepper */
+        .card-panel {
+            background: linear-gradient(180deg, rgba(19, 27, 46, 0.95), rgba(15, 23, 42, 0.95));
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+        }
+
+        .stepper-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .step-badge {
+            background: var(--primary);
+            color: #03111b;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 800;
+        }
+
+        .step-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .btn-step {
+            background: var(--surface-hover);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-step:hover:not(:disabled) {
+            background: var(--primary);
+            color: #03111b;
+            border-color: var(--primary);
+        }
+
+        .btn-step:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .step-explanation {
+            background: rgba(11, 15, 25, 0.6);
+            border-left: 4px solid var(--primary);
+            padding: 10px 14px;
+            border-radius: 0 var(--radius-md) var(--radius-md) 0;
+            font-size: 0.88rem;
+            line-height: 1.5;
+        }
+
+        /* Dual Table Grid Layout */
+        .tables-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        @media (min-width: 980px) {
+            .tables-layout.side-by-side {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .table-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+        }
+
+        .table-card.primal-card { border-top: 4px solid var(--accent-primal); }
+        .table-card.dual-card { border-top: 4px solid var(--accent-dual); }
+
+        .table-card-header {
+            padding: 16px 20px;
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-card-title {
+            font-size: 1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .badge-type {
+            font-size: 0.72rem;
+            padding: 3px 8px;
+            border-radius: var(--radius-sm);
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .badge-primal { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); }
+        .badge-dual { background: rgba(249, 115, 22, 0.2); color: #fb923c; border: 1px solid rgba(249, 115, 22, 0.4); }
+
+        .table-card-body {
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        table.simplex-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: var(--font-mono);
+            font-size: 0.84rem;
+            text-align: center;
+        }
+
+        table.simplex-table th, table.simplex-table td {
+            padding: 5px 8px;
+            border: 1px solid var(--border);
+            position: relative;
+        }
+
+        table.simplex-table thead tr:first-child th {
+            background: #19233c;
+            font-weight: 700;
+            color: #cbd5e1;
+            font-size: 0.8rem;
+            padding: 6px 8px;
+        }
+
+        table.simplex-table thead tr:nth-child(2) th {
+            background: #141c30;
+            font-weight: 800;
+            color: var(--text-main);
+            font-size: 0.84rem;
+            padding: 6px 8px;
+        }
+
+        table.simplex-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        table.simplex-table tr.zj-row {
+            background: #0f172a;
+            font-weight: 700;
+            border-top: 2px solid var(--border);
+        }
+
+        table.simplex-table tr.zj-row td { color: var(--primary); }
+        table.simplex-table td.cell-base { background: rgba(56, 189, 248, 0.08); font-weight: 700; color: var(--primary); }
+        table.simplex-table td.cell-b { background: rgba(255, 255, 255, 0.04); font-weight: 700; color: #f8fafc; }
+
+        .hl-source {
+            background: rgba(56, 189, 248, 0.35) !important;
+            color: #ffffff !important;
+            font-weight: 800 !important;
+            box-shadow: inset 0 0 0 2px var(--primary) !important;
+        }
+
+        .hl-target {
+            background: rgba(249, 115, 22, 0.35) !important;
+            color: #ffffff !important;
+            font-weight: 800 !important;
+            box-shadow: inset 0 0 0 2px var(--accent-dual) !important;
+        }
+
+        .hl-entering {
+            background: rgba(16, 185, 129, 0.22) !important;
+            color: #34d399 !important;
+            font-weight: 800 !important;
+            box-shadow: inset 0 0 0 2px #10b981 !important;
+        }
+
+        .hl-leaving {
+            background: rgba(239, 68, 68, 0.22) !important;
+            color: #fca5a5 !important;
+            font-weight: 800 !important;
+            box-shadow: inset 0 0 0 2px #ef4444 !important;
+        }
+
+        .hl-pivot {
+            background: rgba(59, 130, 246, 0.45) !important;
+            color: #ffffff !important;
+            font-weight: 900 !important;
+            box-shadow: inset 0 0 0 2px #38bdf8, 0 0 14px rgba(56, 189, 248, 0.6) !important;
+            border-radius: 4px;
+        }
+
+        .verdict-card {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .verdict-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            border-radius: var(--radius-full);
+            font-weight: 800;
+            font-size: 0.92rem;
+            letter-spacing: 0.02em;
+            width: fit-content;
+        }
+        .verdict-badge.optimal { background: rgba(16, 185, 129, 0.25); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.5); }
+        .verdict-badge.alternative { background: rgba(59, 130, 246, 0.25); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.5); }
+        .verdict-badge.degenerate { background: rgba(234, 179, 8, 0.25); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.5); }
+        .verdict-badge.unbounded { background: rgba(249, 115, 22, 0.25); color: #fb923c; border: 1px solid rgba(249, 115, 22, 0.5); }
+        .verdict-badge.incompatible { background: rgba(239, 68, 68, 0.25); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.5); }
+
+        .hl-identity {
+            background: rgba(16, 185, 129, 0.25) !important;
+            color: #34d399 !important;
+            font-weight: 700 !important;
+        }
+
+        .col-dual-mapping {
+            display: block;
+            font-size: 0.72rem;
+            color: var(--accent-dual);
+            margin-top: 4px;
+            font-weight: 600;
+        }
+
+        /* Form & Builder Controls */
+        .form-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .form-control {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px var(--primary-glow);
+        }
+
+        .btn-action {
+            background: var(--primary);
+            color: #03111b;
+            border: none;
+            padding: 10px 18px;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-action:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+        }
+
+        .btn-action.dual-btn {
+            background: var(--accent-dual);
+            color: #ffffff;
+        }
+
+        .btn-action.outline-btn {
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-action.outline-btn:hover {
+            background: var(--primary);
+            color: #03111b;
+        }
+
+        input.cell-input, select.cell-select {
+            width: 64px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 4px 6px;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            text-align: center;
+            outline: none;
+        }
+
+        input.cell-input:focus, select.cell-select:focus {
+            border-color: var(--accent-dual);
+            background: rgba(249, 115, 22, 0.15);
+        }
+
+        input.cell-input.correct {
+            border-color: var(--success);
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+        }
+
+        input.cell-input.wrong {
+            border-color: var(--error);
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+        }
+
+        .equation-box {
+            background: rgba(11, 15, 25, 0.7);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 12px 16px;
+            font-family: var(--font-mono);
+            font-size: 0.88rem;
+            line-height: 1.5;
+        }
+
+        .results-box {
+            background: rgba(11, 15, 25, 0.8);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .results-status {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            font-size: 1.05rem;
+        }
+
+        .cheatsheet-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        .rule-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .rule-card-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .rule-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .rule-table th, .rule-table td {
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            text-align: left;
+        }
+
+        .rule-table th { background: #141c30; color: var(--text-muted); }
+
+        footer {
+            margin-top: auto;
+            border-top: 1px solid var(--border);
+            padding: 20px 32px;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            background: var(--surface);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-brand">
+            <div class="header-icon">⇄</div>
+            <div class="header-title">
+                <h1>Simplex ⇄ Dual: Formulación & Tablas Óptimas</h1>
+                <p>Investigación Operativa • Ecuaciones Iniciales, Simplex Automático y Pasaje de Tablas (Cátedra Carlevari)</p>
+            </div>
+        </div>
+
+        <nav class="nav-tabs">
+            <button class="tab-btn active" data-tab="equations" onclick="switchTab('equations')">🚀 Desde Ecuaciones</button>
+            <button class="tab-btn" data-tab="stepper" onclick="switchTab('stepper')">🎬 Paso a Paso (Tutorial)</button>
+            <button class="tab-btn" data-tab="verifier" onclick="switchTab('verifier')">🧪 Practicar / Verificar</button>
+            <button class="tab-btn" data-tab="theory" onclick="switchTab('theory')">📖 Reglas de Diapos (36-59)</button>
+        </nav>
+    </header>
+
+    <main>
+        <!-- VIEW 1: EQUATIONS INPUT & SIMPLEX SOLVER (THE MAIN USER REQUEST) -->
+        <div id="view-equations" class="tab-view active">
+            <!-- Preset Bar ONLY inside Equations Tab -->
+            <section class="preset-bar">
+                <div class="preset-title">
+                    <span>📁 Cargar Ejemplos del Curso:</span>
+                </div>
+                <div class="preset-buttons">
+                    <button class="btn-preset active" data-preset="slides_metal" onclick="loadPreset('slides_metal')">Diapos 37-45: Taller Metalúrgico (Máx)</button>
+                    <button class="btn-preset" data-preset="ex_4_2" onclick="loadPreset('ex_4_2')">Ejercicio 4.2 ➔ 5.6 (Máx, 3 variables)</button>
+                    <button class="btn-preset" data-preset="ex_4_9" onclick="loadPreset('ex_4_9')">Ejercicio 4.9 ➔ 5.8 (Máx, 2 variables)</button>
+                    <button class="btn-preset" data-preset="ex_4_12" onclick="loadPreset('ex_4_12')">Ejercicio 4.12 ➔ 5.9 (Mín: &ge;, &le;)</button>
+                    <button class="btn-preset" data-preset="slides_min" onclick="loadPreset('slides_min')">Diapos 52-57: Minimización (Mín: &le;, &ge;, =)</button>
+                </div>
+            </section>
+
+            <div class="card-panel">
+                <div>
+                    <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--primary);">1. Ecuaciones Iniciales del Problema Directo</h2>
+                    <p style="color: var(--text-muted); font-size: 0.88rem;">Ingresá la Función Objetivo y las restricciones originales. De aquí se obtienen los costos $c_j$ y los recursos $b_i$ reales para completar con 100% de exactitud la columna $c_k$ del Dual.</p>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Sentido:</label>
+                        <select id="eq-sense" class="form-control" onchange="renderEquationForm()">
+                            <option value="MAX">Maximizar (Z ➔ Máx)</option>
+                            <option value="MIN">Minimizar (Z ➔ Mín)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Variables de Decisión ($n$):</label>
+                        <input type="number" id="eq-n-vars" class="form-control" value="2" min="1" max="6" onchange="renderEquationForm()">
+                    </div>
+                    <div class="form-group">
+                        <label>Restricciones ($m$):</label>
+                        <input type="number" id="eq-n-rows" class="form-control" value="3" min="1" max="6" onchange="renderEquationForm()">
+                    </div>
+                </div>
+
+                <!-- Equation Builder Container -->
+                <div id="equation-builder-container" style="overflow-x: auto;">
+                    <!-- Rendered by JS -->
+                </div>
+
+                <!-- Action Buttons Requested by the User (Reordered & Interactive) -->
+                <div style="display: flex; gap: 12px; flex-wrap: wrap; padding-top: 14px; border-top: 1px solid var(--border);">
+                    <button class="btn-action" onclick="showPanel('simplex')">⚡ 1. Resolver Primal por Simplex (Paso a Paso)</button>
+                    <button class="btn-action outline-btn" onclick="showPanel('dual-eq')">📝 2. Formular Ecuaciones del Dual</button>
+                    <button class="btn-action dual-btn" onclick="showPanel('dual-table')">🎬 3. Construir Tabla Dual (Paso a Paso)</button>
+                </div>
+            </div>
+
+            <!-- DYNAMIC ACTION PANELS (MUTUALLY EXCLUSIVE & EMBEDDED UNDER EQUATIONS) -->
+            <div id="action-panels-container" style="margin-top: 20px;">
+                <!-- PANEL 1: SIMPLEX PRIMAL STEP-BY-STEP (INTERACTIVE ITERATIONS) -->
+                <div id="panel-simplex" class="card-panel" style="display: none; border-left: 4px solid var(--primary);">
+                    <!-- Header with Title and Close Button -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
+                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                            <span class="badge-type badge-primal">PRIMAL DIRECTO</span>
+                            <span style="font-weight: 700; color: var(--primary); font-size: 1.05rem;">Resolución Completa por Método Simplex</span>
+                        </div>
+                        <button class="btn-step" onclick="hideAllActionPanels()" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">✕ Ocultar</button>
+                    </div>
+
+                    <!-- NEW: Pasaje a la Forma Estándar Container -->
+                    <div id="simplex-standard-form-container" style="margin-bottom: 18px;">
+                        <!-- Rendered by JS -->
+                    </div>
+
+                    <!-- Iteration Stepper Controls Header -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; background: rgba(0,0,0,0.25); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.06);">
+                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                            <span class="step-badge" id="simplex-step-badge">Iteración 0</span>
+                            <span style="font-weight: 700; color: var(--primary);" id="simplex-step-phase">Método Simplex</span>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                            <button class="btn-step" id="btn-simplex-first" onclick="goToSimplexIter(0)">⏮ Inicio</button>
+                            <button class="btn-step" id="btn-simplex-prev" onclick="changeSimplexIter(-1)">◀ Anterior</button>
+                            <button class="btn-step" id="btn-simplex-next" onclick="changeSimplexIter(1)">Siguiente ▶</button>
+                            <button class="btn-step" id="btn-simplex-last" onclick="goToSimplexIter(-1)">⏭ Fin</button>
+                        </div>
+                    </div>
+
+                    <!-- Step Explanation Box -->
+                    <div class="step-explanation" id="simplex-iter-explanation" style="margin-bottom: 16px;">
+                        <!-- Explanation rendered by JS -->
+                    </div>
+
+                    <!-- Simplex Tableau Container -->
+                    <div style="overflow-x: auto;" id="simplex-tableau-container">
+                        <!-- Table rendered by JS -->
+                    </div>
+
+                    <!-- Final Verdict Container (Rendered on final iteration) -->
+                    <div id="simplex-verdict-container" style="margin-top: 16px;"></div>
+                </div>
+
+                <!-- PANEL 2: DUAL SYMBOLIC FORMULATION -->
+                <div id="panel-dual-eq" class="card-panel" style="display: none; border-left: 4px solid var(--accent-dual);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                        <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--accent-dual); display: flex; align-items: center; gap: 8px; margin: 0;">
+                            <span>📝 Formulación Simbólica del Problema Dual</span>
+                        </h3>
+                        <button class="btn-step" onclick="hideAllActionPanels()" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">✕ Ocultar</button>
+                    </div>
+                    <div class="equation-box" id="dual-symbolic-text">
+                        <!-- Math rendered here -->
+                    </div>
+                </div>
+
+                <!-- PANEL 3: DUAL STEP-BY-STEP CONSTRUCTION (PASO A PASO) -->
+                <div id="panel-dual-table" class="card-panel" style="display: none; border-left: 4px solid var(--accent-step);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
+                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                            <span class="badge-type badge-dual">PASO A PASO DUAL</span>
+                            <span class="step-badge" id="embedded-dual-step-badge">Paso 0 de 6</span>
+                            <span class="step-title" id="embedded-dual-step-title" style="font-weight: 700;">Tabla Óptima Primal y Mapeo</span>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                            <button class="btn-step" id="btn-emb-dual-prev" onclick="changeEmbeddedDualStep(-1)" disabled>◀ Anterior</button>
+                            <button class="btn-step" id="btn-emb-dual-next" onclick="changeEmbeddedDualStep(1)">Siguiente ▶</button>
+                            <button class="btn-step" onclick="resetEmbeddedDualStep()">↺ Reiniciar</button>
+                            <button class="btn-step" onclick="hideAllActionPanels()" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">✕ Ocultar</button>
+                        </div>
+                    </div>
+
+                    <!-- Dual Step Explanation Box -->
+                    <div class="step-explanation" id="embedded-dual-explanation" style="margin-bottom: 16px;">
+                        <!-- Explanation rendered by JS -->
+                    </div>
+
+                    <!-- Dual Construction Tables (Primal and Dual side by side or stacked) -->
+                    <div class="stepper-tables-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px;">
+                        <div class="table-card primal-card">
+                            <div class="table-card-header">
+                                <span class="badge-type badge-primal">DIRECTA ÓPTIMA</span>
+                                <span style="font-family: var(--font-mono); font-weight: 700; color: var(--primary);" id="emb-stepper-primal-z">Z = 0</span>
+                            </div>
+                            <div class="table-card-body" id="emb-primal-table-container"></div>
+                        </div>
+
+                        <div class="table-card dual-card">
+                            <div class="table-card-header">
+                                <span class="badge-type badge-dual">DUAL ÓPTIMA (CONSTRUCCIÓN)</span>
+                                <span style="font-family: var(--font-mono); font-weight: 700; color: var(--accent-dual);" id="emb-stepper-dual-w">W = ---</span>
+                            </div>
+                            <div class="table-card-body" id="emb-dual-table-container"></div>
+                        </div>
+                    </div>
+
+                    <!-- Step 6 Verdict Card -->
+                    <div id="embedded-step6-verdict-container" style="display: none; margin-top: 16px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 2: STEP-BY-STEP TUTORIAL (STEPPER) -->
+        <div id="view-stepper" class="tab-view" style="display: none;">
+            <div class="card-panel">
+                <div class="stepper-header">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span class="step-badge" id="step-badge">Paso 0 de 5</span>
+                        <span class="step-title" id="step-title">Tabla Óptima Primal y Mapeo de Variables</span>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button class="btn-step" id="btn-prev" onclick="changeStep(-1)" disabled>◀ Anterior</button>
+                        <button class="btn-step" id="btn-next" onclick="changeStep(1)">Siguiente ▶</button>
+                        <button class="btn-step" onclick="resetStepper()">↺ Reiniciar</button>
+                    </div>
+                </div>
+                <div class="step-explanation" id="step-explanation">
+                    <!-- Dynamic explanation rendered by JS -->
+                </div>
+            </div>
+
+            <div class="tables-layout side-by-side" style="margin-top: 24px;">
+                <div class="table-card primal-card">
+                    <div class="table-card-header">
+                        <div class="table-card-title">
+                            <span class="badge-type badge-primal" id="primal-badge-sense">PRIMAL (MAX)</span>
+                            <span>Tabla Óptima Directa</span>
+                        </div>
+                        <span style="font-size: 0.85rem; color: var(--text-muted); font-family: var(--font-mono);" id="primal-z-display">Z = 15.000</span>
+                    </div>
+                    <div class="table-card-body" id="primal-table-container"></div>
+                </div>
+
+                <div class="table-card dual-card">
+                    <div class="table-card-header">
+                        <div class="table-card-title">
+                            <span class="badge-type badge-dual" id="dual-badge-sense">DUAL (MIN)</span>
+                            <span>Construcción de Tabla Dual</span>
+                        </div>
+                        <span style="font-size: 0.85rem; color: var(--accent-dual); font-family: var(--font-mono); font-weight: 700;" id="dual-w-display">W = ?</span>
+                    </div>
+                    <div class="table-card-body" id="dual-table-container"></div>
+                </div>
+            </div>
+
+            <!-- Step 6 Verdict Card for Tab 2 -->
+            <div id="step6-verdict-container" style="display: none; margin-top: 16px;"></div>
+        </div>
+
+        <!-- VIEW 3: PRACTICE & VERIFY -->
+        <div id="view-verifier" class="tab-view" style="display: none;">
+            <div class="card-panel">
+                <div class="stepper-header">
+                    <div>
+                        <h2 style="font-size: 1.2rem; font-weight: 700;">Modo Práctica: Ingresá tus resultados del Dual</h2>
+                        <p style="color: var(--text-muted); font-size: 0.85rem;">Completá las celdas de la tabla dual en base a la tabla primal de la izquierda y las ecuaciones del problema directo. Hacé clic en "Comprobar Respuestas" para verificar signo, transposición y base.</p>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">Ejercicio:</label>
+                            <select id="verifier-preset-select" class="form-control" style="width: auto; padding: 4px 8px; font-size: 0.8rem;" onchange="loadPreset(this.value)">
+                                <option value="slides_metal">Diapos 37-45: Taller Metalúrgico (Máx)</option>
+                                <option value="ex_4_2">Ejercicio 4.2 ➔ 5.6 (Máx, 3 variables)</option>
+                                <option value="ex_4_9">Ejercicio 4.9 ➔ 5.8 (Máx, 2 variables)</option>
+                                <option value="ex_4_12">Ejercicio 4.12 ➔ 5.9 (Mín: &ge;, &le;)</option>
+                                <option value="slides_min">Diapos 52-57: Minimización (Mín: &le;, &ge;, =)</option>
+                            </select>
+                        </div>
+                        <button class="btn-action" onclick="checkUserDual()">✓ Comprobar Respuestas</button>
+                        <button class="btn-step" onclick="autoFillUserDual()">⚡ Revelar Solución</button>
+                        <button class="btn-step" onclick="clearUserDual()">↺ Limpiar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Primal Initial Equations Card for Practice Tab -->
+            <div class="card-panel" style="margin-top: 14px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                    <div style="font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; font-size: 0.95rem;">
+                        <span>📝 Ecuaciones Iniciales del Problema Directo (Primal)</span>
+                    </div>
+                </div>
+                <div id="verifier-equations-box" class="equation-box" style="margin-top: 8px;">
+                    <!-- Rendered by JS -->
+                </div>
+            </div>
+
+            <div class="results-box" id="verifier-results" style="display: none; margin-top: 14px;">
+                <div class="results-status" id="verifier-status-text"></div>
+                <div id="verifier-feedback-details" style="font-size: 0.88rem; color: var(--text-muted);"></div>
+            </div>
+
+            <div class="tables-layout side-by-side" style="margin-top: 24px;">
+                <div class="table-card primal-card">
+                    <div class="table-card-header">
+                        <div class="table-card-title">
+                            <span class="badge-type badge-primal">PRIMAL DIRECTO</span>
+                            <span>Tabla Óptima Dada</span>
+                        </div>
+                    </div>
+                    <div class="table-card-body" id="verifier-primal-container"></div>
+                </div>
+
+                <div class="table-card dual-card">
+                    <div class="table-card-header">
+                        <div class="table-card-title">
+                            <span class="badge-type badge-dual">TU TABLA DUAL</span>
+                            <span>Completá los campos</span>
+                        </div>
+                    </div>
+                    <div class="table-card-body" id="verifier-dual-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 4: THEORY CHEATSHEETS -->
+        <div id="view-theory" class="tab-view" style="display: none;">
+            <div class="cheatsheet-grid">
+                <div class="rule-card">
+                    <div class="rule-card-title">📌 Diapos 46-51: Reglas de Signos del Pasaje</div>
+                    <table class="rule-table">
+                        <thead>
+                            <tr>
+                                <th>Elemento</th>
+                                <th>Directo Máx ➔ Dual Mín</th>
+                                <th>Directo Mín ➔ Dual Máx</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><b>Funcional Óptimo</b></td>
+                                <td>$W_{\text{ópt}} = Z_{\text{ópt}}$ (mismo valor)</td>
+                                <td>$W_{\text{ópt}} = Z_{\text{ópt}}$ (mismo valor)</td>
+                            </tr>
+                            <tr>
+                                <td><b>Base Dual ($B_{\text{dual}}$)</b></td>
+                                <td>Toma $(z_j - c_j)_{\text{primal}}$ con signo <b>$+$</b></td>
+                                <td>Toma $(z_j - c_j)_{\text{primal}}$ con signo <b>$-$</b></td>
+                            </tr>
+                            <tr>
+                                <td><b>Fila $z_j - c_j$ Dual</b></td>
+                                <td>Toma $B_{\text{primal}}$ con signo <b>$-$</b></td>
+                                <td>Toma $B_{\text{primal}}$ con signo <b>$+$</b></td>
+                            </tr>
+                            <tr>
+                                <td><b>Matriz Interna</b></td>
+                                <td>$\bar{A}_{\text{dual}} = -\bar{A}_{\text{primal}}^T$ (signo <b>$-$</b>)</td>
+                                <td>$\bar{A}_{\text{dual}} = -\bar{A}_{\text{primal}}^T$ (signo <b>$-$</b>)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="rule-card">
+                    <div class="rule-card-title">⚖️ Diapo 58-59: Teorema Fundamental de la Dualidad</div>
+                    <table class="rule-table">
+                        <thead>
+                            <tr>
+                                <th>Problema Directo</th>
+                                <th>Problema Dual</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><b>Solución Óptima Finita</b></td>
+                                <td><b>Solución Óptima Finita</b> ($Z^* = W^*$)</td>
+                            </tr>
+                            <tr>
+                                <td><b>Solución Degenerada</b></td>
+                                <td><b>Soluciones Alternativas</b> (múltiples)</td>
+                            </tr>
+                            <tr>
+                                <td><b>Soluciones Alternativas</b></td>
+                                <td><b>Solución Degenerada</b></td>
+                            </tr>
+                            <tr>
+                                <td><b>Problema Incompatible</b></td>
+                                <td><b>Poliedro Abierto</b> (No acotado)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="rule-card">
+                    <div class="rule-card-title">💡 ¿De dónde sale la columna $c_k$ del Dual?</div>
+                    <ul style="font-size: 0.85rem; padding-left: 20px; color: var(--text-main); line-height: 1.8;">
+                        <li><b>Variables Principales $y_i$</b> (asociadas a la $i$-ésima restricción del directo): Su costo $c_k$ es el <b>recurso $b_i$ original del primal</b>.</li>
+                        <li><b>Variables de Exceso $y_{m+j}$</b> (asociadas a la variable de decisión $x_j$): Su costo $c_k$ en el dual es <b>0</b> (por ser variable de holgura/exceso en el dual).</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>Herramienta Didáctica Interactiva para Cátedra de Investigación Operativa • Facultad de Ingeniería (UBA / FIUBA)</p>
+    </footer>
+
+    <!-- LOGIC SCRIPT -->
+    <script>
+        // Exact fraction class for lossless Simplex math
+        class Fraction {
+            constructor(num, den = 1) {
+                if (typeof num === 'string') {
+                    num = num.trim();
+                    if (num.includes('/')) {
+                        const parts = num.split('/');
+                        num = parseInt(parts[0], 10);
+                        den = parseInt(parts[1], 10);
+                    } else if (num.includes('.')) {
+                        const val = parseFloat(num);
+                        const str = val.toString();
+                        const decimals = str.includes('.') ? str.split('.')[1].length : 0;
+                        den = Math.pow(10, decimals);
+                        num = Math.round(val * den);
+                    } else {
+                        num = parseInt(num, 10);
+                        den = 1;
+                    }
+                }
+                if (isNaN(num)) num = 0;
+                if (isNaN(den) || den === 0) den = 1;
+                if (den < 0) { num = -num; den = -den; }
+                const g = this.gcd(Math.abs(num), Math.abs(den));
+                this.n = num / g;
+                this.d = den / g;
+            }
+
+            gcd(a, b) { return b === 0 ? a : this.gcd(b, a % b); }
+            add(other) { return new Fraction(this.n * other.d + other.n * this.d, this.d * other.d); }
+            sub(other) { return new Fraction(this.n * other.d - other.n * this.d, this.d * other.d); }
+            mul(other) { return new Fraction(this.n * other.n, this.d * other.d); }
+            div(other) { return new Fraction(this.n * other.d, this.d * other.n); }
+            neg() { return new Fraction(-this.n, this.d); }
+            toTex() { return this.d === 1 ? `${this.n}` : `${this.n}/${this.d}`; }
+            toString() { return this.toTex(); }
+            equals(other) { return this.n === other.n && this.d === other.d; }
+            isZero() { return this.n === 0; }
+            gt(other) { return this.n * other.d > other.n * this.d; }
+            lt(other) { return this.n * other.d < other.n * this.d; }
+            gte(other) { return this.n * other.d >= other.n * this.d; }
+            lte(other) { return this.n * other.d <= other.n * this.d; }
+            abs() { return new Fraction(Math.abs(this.n), this.d); }
+        }
+
+        function F(n, d = 1) { return new Fraction(n, d); }
+
+        // BigM class: represents values of the form p + q * M, where M is an arbitrarily large constant
+        class BigM {
+            constructor(p = F(0), q = F(0)) {
+                this.p = (p instanceof Fraction) ? p : F(p);
+                this.q = (q instanceof Fraction) ? q : F(q);
+            }
+            add(other) {
+                const o = (other instanceof BigM) ? other : new BigM(other, F(0));
+                return new BigM(this.p.add(o.p), this.q.add(o.q));
+            }
+            sub(other) {
+                const o = (other instanceof BigM) ? other : new BigM(other, F(0));
+                return new BigM(this.p.sub(o.p), this.q.sub(o.q));
+            }
+            mul(frac) {
+                const f = (frac instanceof Fraction) ? frac : F(frac);
+                return new BigM(this.p.mul(f), this.q.mul(f));
+            }
+            neg() {
+                return new BigM(this.p.neg(), this.q.neg());
+            }
+            isZero() {
+                return this.p.isZero() && this.q.isZero();
+            }
+            gt(other) {
+                const o = (other instanceof BigM) ? other : new BigM(other, F(0));
+                const diff = this.sub(o);
+                if (diff.q.gt(F(0))) return true;
+                if (diff.q.lt(F(0))) return false;
+                return diff.p.gt(F(0));
+            }
+            lt(other) {
+                const o = (other instanceof BigM) ? other : new BigM(other, F(0));
+                const diff = this.sub(o);
+                if (diff.q.lt(F(0))) return true;
+                if (diff.q.gt(F(0))) return false;
+                return diff.p.lt(F(0));
+            }
+            gte(other) { return !this.lt(other); }
+            lte(other) { return !this.gt(other); }
+            equals(other) {
+                const o = (other instanceof BigM) ? other : new BigM(other, F(0));
+                return this.p.equals(o.p) && this.q.equals(o.q);
+            }
+            toTex() {
+                const pZero = this.p.isZero();
+                const qZero = this.q.isZero();
+                if (qZero && pZero) return '0';
+                if (qZero) return this.p.toTex();
+
+                let qStr = '';
+                if (this.q.equals(F(1))) qStr = 'M';
+                else if (this.q.equals(F(-1))) qStr = '-M';
+                else qStr = `${this.q.toTex()}M`;
+
+                if (pZero) return qStr;
+
+                let pSign = '+';
+                let pAbs = this.p;
+                if (this.p.lt(F(0))) {
+                    pSign = '-';
+                    pAbs = this.p.neg();
+                }
+                return `${qStr} ${pSign} ${pAbs.toTex()}`;
+            }
+            toString() { return this.toTex(); }
+        }
+
+        // Format variable names to KaTeX mathematical representation (e.g., Mu_n -> \mu_{n}, x1 -> x_{1})
+        function formatVarMath(name) {
+            if (!name) return '';
+            let s = String(name).trim();
+            if (s.startsWith('$') && s.endsWith('$')) {
+                s = s.slice(1, -1).trim();
+            }
+            // Replace mu_n, Mu_n, Mu1, \mu_1 -> \mu_{...}
+            s = s.replace(/\\?mu_?\{?([a-zA-Z0-9]+)\}?/gi, '\\mu_{$1}');
+            // Replace lambda_n, Lambda_n, \lambda_1 -> \lambda_{...}
+            s = s.replace(/\\?lambda_?\{?([a-zA-Z0-9]+)\}?/gi, '\\lambda_{$1}');
+            // Replace x1, y2, x_k -> x_{k}, y_{k}
+            s = s.replace(/^([xy])_?\{?([a-zA-Z0-9]+)\}?$/i, '$1_{$2}');
+            return `$${s}$`;
+        }
+
+        function renderLatex(element) {
+            if (window.renderMathInElement) {
+                window.renderMathInElement(element || document.body, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false},
+                        {left: '\\(', right: '\\)', display: false},
+                        {left: '\\[', right: '\\]', display: true}
+                    ],
+                    throwOnError: false
+                });
+            }
+        }
+
+        // PRESETS DATABASE
+        const PRESETS = {
+            slides_metal: {
+                id: 'slides_metal',
+                title: 'Ejemplo Diapos 37-45: Taller Metalúrgico',
+                sense: 'MAX',
+                dualSense: 'MIN',
+                Z: F(15000),
+                varNames: ['x1', 'x2', 'x3', 'x4', 'x5'],
+                dualVarNames: ['y4', 'y5', 'y1', 'y2', 'y3'],
+                origCosts: [F(4), F(3), F(0), F(0), F(0)],
+                origResources: [F(48000), F(42000), F(36000)],
+                eqCoeffs: [
+                    { coeffs: [F(6), F(16)], sign: '<=', rhs: F(48000) },
+                    { coeffs: [F(12), F(6)], sign: '<=', rhs: F(42000) },
+                    { coeffs: [F(9), F(9)], sign: '<=', rhs: F(36000) }
+                ],
+                base: [
+                    { var: 'x3', ck: F(0), B: F(14000), row: [F(0), F(0), F(1), F(5,3), F(-26,9)] },
+                    { var: 'x1', ck: F(4), B: F(3000), row: [F(1), F(0), F(0), F(1,6), F(-1,9)] },
+                    { var: 'x2', ck: F(3), B: F(1000), row: [F(0), F(1), F(0), F(-1,6), F(2,9)] }
+                ],
+                zj_cj: [F(0), F(0), F(0), F(1,6), F(2,9)]
+            },
+            ex_4_2: {
+                id: 'ex_4_2',
+                title: 'Ejercicio 4.2 ➔ 5.6',
+                sense: 'MAX',
+                dualSense: 'MIN',
+                Z: F(1350),
+                varNames: ['x1', 'x2', 'x3', 'x4', 'x5', 'x6'],
+                dualVarNames: ['y4', 'y5', 'y6', 'y1', 'y2', 'y3'],
+                origCosts: [F(3), F(2), F(5), F(0), F(0), F(0)],
+                origResources: [F(430), F(460), F(420)],
+                eqCoeffs: [
+                    { coeffs: [F(1), F(2), F(1)], sign: '<=', rhs: F(430) },
+                    { coeffs: [F(3), F(0), F(2)], sign: '<=', rhs: F(460) },
+                    { coeffs: [F(1), F(4), F(0)], sign: '<=', rhs: F(420) }
+                ],
+                base: [
+                    { var: 'x2', ck: F(2), B: F(100), row: [F(-1,4), F(1), F(0), F(1,2), F(-1,4), F(0)] },
+                    { var: 'x3', ck: F(5), B: F(230), row: [F(3,2), F(0), F(1), F(0), F(1,2), F(0)] },
+                    { var: 'x6', ck: F(0), B: F(20),  row: [F(2), F(0), F(0), F(-2), F(1), F(1)] }
+                ],
+                zj_cj: [F(4), F(0), F(0), F(1), F(2), F(0)]
+            },
+            ex_4_9: {
+                id: 'ex_4_9',
+                title: 'Ejercicio 4.9 ➔ 5.8',
+                sense: 'MAX',
+                dualSense: 'MIN',
+                Z: F(96),
+                varNames: ['x1', 'x2', 'x3', 'x4', 'x5'],
+                dualVarNames: ['y4', 'y5', 'y1', 'y2', 'y3'],
+                origCosts: [F(6), F(4), F(0), F(0), F(0)],
+                origResources: [F(48), F(60), F(45)],
+                eqCoeffs: [
+                    { coeffs: [F(2), F(4)], sign: '<=', rhs: F(48) },
+                    { coeffs: [F(4), F(2)], sign: '<=', rhs: F(60) },
+                    { coeffs: [F(3), F(0)], sign: '<=', rhs: F(45) }
+                ],
+                base: [
+                    { var: 'x2', ck: F(4), B: F(6),  row: [F(0), F(1), F(1,3), F(-1,6), F(0)] },
+                    { var: 'x1', ck: F(6), B: F(12), row: [F(1), F(0), F(-1,6), F(1,3), F(0)] },
+                    { var: 'x5', ck: F(0), B: F(9),  row: [F(0), F(0), F(1,2), F(-1), F(1)] }
+                ],
+                zj_cj: [F(0), F(0), F(1,3), F(4,3), F(0)]
+            },
+            ex_4_12: {
+                id: 'ex_4_12',
+                title: 'Ejercicio 4.12 ➔ 5.9',
+                sense: 'MIN',
+                dualSense: 'MAX',
+                Z: F(-4),
+                varNames: ['x1', 'x2', 'x3', 'x4', 'x5', 'x6'],
+                dualVarNames: ['y5', 'y6', 'y1', 'y2', 'y3', 'y4'],
+                origCosts: [F(1), F(-2), F(0), F(0), F(0), F(0)],
+                origResources: [F(2), F(10), F(8), F(1)],
+                eqCoeffs: [
+                    { coeffs: [F(1), F(0)], sign: '>=', rhs: F(2) },
+                    { coeffs: [F(2), F(1)], sign: '<=', rhs: F(10) },
+                    { coeffs: [F(1), F(2)], sign: '<=', rhs: F(8) },
+                    { coeffs: [F(0), F(1)], sign: '>=', rhs: F(1) }
+                ],
+                base: [
+                    { var: 'x1', ck: F(1), B: F(2), row: [F(1), F(0), F(-1), F(0), F(0), F(0)] },
+                    { var: 'x4', ck: F(0), B: F(3), row: [F(0), F(0), F(3,2), F(1), F(-1,2), F(0)] },
+                    { var: 'x6', ck: F(0), B: F(2), row: [F(0), F(0), F(1,2), F(0), F(1,2), F(1)] },
+                    { var: 'x2', ck: F(-2), B: F(3), row: [F(0), F(1), F(1,2), F(0), F(1,2), F(0)] }
+                ],
+                zj_cj: [F(0), F(0), F(-2), F(0), F(-1), F(0)]
+            },
+            slides_min: {
+                id: 'slides_min',
+                title: 'Diapos 52-57: Minimización (Min ➔ Max)',
+                sense: 'MIN',
+                dualSense: 'MAX',
+                Z: F(16, 10),
+                varNames: ['x1', 'x2', 'x3', 'x4', 'x5', 'lambda'],
+                dualVarNames: ['y4', 'y5', 'y6', 'y1', 'y2', 'y3'],
+                origCosts: [F(1), F(1,2), F(2), F(0), F(0), F(0)],
+                origResources: [F(36,10), F(12,10), F(1)],
+                eqCoeffs: [
+                    { coeffs: [F(3), F(2), F(4)], sign: '<=', rhs: F(36,10) },
+                    { coeffs: [F(1), F(1,2), F(2)], sign: '>=', rhs: F(12,10) },
+                    { coeffs: [F(1), F(1), F(1)], sign: '=', rhs: F(1) }
+                ],
+                base: [
+                    { var: 'x1', ck: F(1), B: F(4, 10), row: [F(1), F(2), F(0), F(1), F(0), F(4)] },
+                    { var: 'x5', ck: F(0), B: F(4, 10), row: [F(0), F(-1,2), F(0), F(-1), F(1), F(-2)] },
+                    { var: 'x3', ck: F(2), B: F(6, 10), row: [F(0), F(1), F(1), F(-1), F(0), F(-3)] }
+                ],
+                zj_cj: [F(0), F(-1,2), F(0), F(-1), F(0), F(-2)]
+            }
+        };
+
+        let currentData = PRESETS.slides_metal;
+        let currentStep = 0;
+        const totalSteps = 6;
+
+        // SIMPLEX SOLVER ENGINE WITH BIG-M METHOD & ITERATION HISTORY
+        function solveSimplexWithHistory(objSense, objCoeffs, constraints) {
+    const n = objCoeffs.length;
+    const m = constraints.length;
+    const isMin = (objSense === 'MIN');
+
+    const constrs = constraints.map(c => {
+        if (c.rhs.lt(F(0))) {
+            let flippedSign = c.sign === '<=' ? '>=' : c.sign === '>=' ? '<=' : '=';
+            return {
+                coeffs: c.coeffs.map(x => x.neg()),
+                sign: flippedSign,
+                rhs: c.rhs.neg()
+            };
+        }
+        return { coeffs: [...c.coeffs], sign: c.sign || '<=', rhs: c.rhs };
+    });
+
+    const varNames = [];
+    const dualVarNames = [];
+    const costs = [];
+
+    // Decision variables
+    for (let j = 0; j < n; j++) {
+        varNames.push(`x${j + 1}`);
+        dualVarNames.push(`y${m + j + 1}`);
+        costs.push(new BigM(objCoeffs[j], F(0)));
+    }
+
+    const base = [];
+    const constraintCols = [];
+    const artCols = [];
+
+    // One constraint variable per restriction (matching x_{n + i + 1})
+    constrs.forEach((c, i) => {
+        const varIdxNum = n + i + 1;
+        if (c.sign === '<=') {
+            const sName = `x${varIdxNum}`;
+            varNames.push(sName);
+            const colIdx = varNames.length - 1;
+            dualVarNames.push(`y${i + 1}`);
+            costs.push(new BigM(F(0), F(0)));
+            constraintCols.push({ row: i, col: colIdx, val: F(1), name: sName });
+            base.push(colIdx);
+        } else if (c.sign === '>=') {
+            const eName = `x${varIdxNum}`;
+            varNames.push(eName);
+            const eColIdx = varNames.length - 1;
+            dualVarNames.push(`y${i + 1}`);
+            costs.push(new BigM(F(0), F(0)));
+            constraintCols.push({ row: i, col: eColIdx, val: F(-1), name: eName });
+
+            // Artificial variable mu_{i+1}
+            const uName = `\\mu_${i + 1}`;
+            varNames.push(uName);
+            const uColIdx = varNames.length - 1;
+            dualVarNames.push('');
+            const artCost = isMin ? new BigM(F(0), F(1)) : new BigM(F(0), F(-1));
+            costs.push(artCost);
+            artCols.push({ row: i, col: uColIdx, name: uName });
+            base.push(uColIdx);
+        } else if (c.sign === '=') {
+            const lName = `\\lambda_${i + 1}`;
+            varNames.push(lName);
+            const lColIdx = varNames.length - 1;
+            dualVarNames.push(`y${i + 1}`);
+            const artCost = isMin ? new BigM(F(0), F(1)) : new BigM(F(0), F(-1));
+            costs.push(artCost);
+            artCols.push({ row: i, col: lColIdx, name: lName, isLambda: true });
+            base.push(lColIdx);
+        }
+    });
+
+    const totalCols = varNames.length;
+    let A = [];
+    for (let i = 0; i < m; i++) {
+        let row = new Array(totalCols + 1).fill(F(0));
+        for (let j = 0; j < n; j++) row[j] = constrs[i].coeffs[j];
+        constraintCols.forEach(cc => {
+            if (cc.row === i) row[cc.col] = cc.val;
+        });
+        artCols.forEach(ac => {
+            if (ac.row === i) row[ac.col] = F(1);
+        });
+        row[totalCols] = constrs[i].rhs;
+        A.push(row);
+    }
+
+    // Build Standard Form Metadata
+    const stdSteps = [];
+    const stdEquations = [];
+    constrs.forEach((c, i) => {
+        const origC = constraints[i];
+        let origRhs = origC.rhs;
+        let signChangeNote = '';
+        if (origRhs.lt(F(0))) {
+            signChangeNote = `⚠️ <b>Ajuste por término negativo:</b> $b_{${i+1}} = ${origRhs.toTex()} < 0$. Se multiplicó por $-1$, invirtiéndose la desigualdad a «$${c.sign}$» con $b_{${i+1}} = ${c.rhs.toTex()}$.<br>`;
+        }
+
+        let origLhs = [];
+        for (let j = 0; j < n; j++) {
+            let coef = c.coeffs[j];
+            if (coef.isZero()) continue;
+            let cTex = (coef.equals(F(1))) ? '' : (coef.equals(F(-1)) ? '-' : coef.toTex());
+            let s = '+';
+            if (coef.lt(F(0))) {
+                s = '-';
+                cTex = coef.neg().equals(F(1)) ? '' : coef.neg().toTex();
+            }
+            if (origLhs.length === 0) {
+                origLhs.push((s === '-' ? '-' : '') + cTex + `x_{${j+1}}`);
+            } else {
+                origLhs.push(`${s} ${cTex}x_{${j+1}}`);
+            }
+        }
+        let lhsStr = origLhs.length > 0 ? origLhs.join(' ') : '0';
+
+        const varIdxNum = n + i + 1;
+        let explanation = '';
+        let stdEqTex = '';
+        if (c.sign === '<=') {
+            explanation = `${signChangeNote}• <b>Restricción de tipo $\\le$:</b> Se suma la variable de holgura (slack) <b>$x_{${varIdxNum}} \\ge 0$</b> (costo $c = 0$). Aporta el vector canónico unitario e ingresa a la <b>base inicial</b>.`;
+            stdEqTex = `${lhsStr} + x_{${varIdxNum}} = ${c.rhs.toTex()}`;
+        } else if (c.sign === '>=') {
+            explanation = `${signChangeNote}• <b>Restricción de tipo $\\ge$:</b> Se resta la variable de exceso (surplus) <b>$-x_{${varIdxNum}} \\ge 0$</b> (costo $0$) para igualar, y se suma la variable artificial <b>$+\\mu_{${i + 1}} \\ge 0$</b> (penalizada en $Z$ con ${isMin ? '+M' : '-M'}). La variable artificial $\\mu_{${i + 1}}$ ingresa a la <b>base inicial</b> con costo $c_k = ${isMin ? '+M' : '-M'}$.`;
+            stdEqTex = `${lhsStr} - x_{${varIdxNum}} + \\mu_{${i + 1}} = ${c.rhs.toTex()}`;
+        } else if (c.sign === '=') {
+            explanation = `${signChangeNote}• <b>Restricción de igualdad ($=$):</b> No requiere variable de holgura ni de exceso. Se suma la variable artificial / lambda <b>$+\\lambda_{${i + 1}} \\ge 0$</b> para proveer el vector canónico de la <b>base inicial</b> con costo $c_k = ${isMin ? '+M' : '-M'}$.`;
+            stdEqTex = `${lhsStr} + \\lambda_{${i + 1}} = ${c.rhs.toTex()}`;
+        }
+
+        stdSteps.push({ rowIdx: i + 1, explanation, stdEqTex });
+        stdEquations.push(stdEqTex);
+    });
+
+    let objStandardTex = isMin ? '\\text{Min } Z = ' : '\\text{Max } Z = ';
+    let objTerms = [];
+    for (let j = 0; j < n; j++) {
+        let coef = objCoeffs[j];
+        if (coef.isZero()) continue;
+        let cTex = (coef.equals(F(1))) ? '' : (coef.equals(F(-1)) ? '-' : coef.toTex());
+        let s = '+';
+        if (coef.lt(F(0))) {
+            s = '-';
+            cTex = coef.neg().equals(F(1)) ? '' : coef.neg().toTex();
+        }
+        if (objTerms.length === 0) {
+            objTerms.push((s === '-' ? '-' : '') + cTex + `x_{${j+1}}`);
+        } else {
+            objTerms.push(`${s} ${cTex}x_{${j+1}}`);
+        }
+    }
+    objStandardTex += (objTerms.length > 0 ? objTerms.join(' ') : '0');
+    constraintCols.forEach(cc => {
+        objStandardTex += ` + 0 ${cc.name}`;
+    });
+    if (artCols.length > 0) {
+        const artSign = isMin ? '+ M' : '- M';
+        artCols.forEach(ac => {
+            const uMath = ac.name.includes('\\') ? ac.name : `\\${ac.name}`;
+            objStandardTex += ` ${artSign} ${uMath}`;
+        });
+    }
+
+    let nonNegList = [];
+    for (let j = 1; j <= n; j++) nonNegList.push(`x_{${j}}`);
+    constraintCols.forEach(cc => nonNegList.push(cc.name));
+    artCols.forEach(ac => {
+        const uMath = ac.name.includes('\\') ? ac.name : `\\${ac.name}`;
+        nonNegList.push(uMath);
+    });
+    let nonNegTex = nonNegList.join(', ') + ' \\ge 0';
+    const initialBaseNames = base.map(bIdx => varNames[bIdx]);
+
+    const standardForm = {
+        steps: stdSteps,
+        objTex: objStandardTex,
+        equations: stdEquations,
+        nonNegTex,
+        initialBase: initialBaseNames,
+        hasArtificials: artCols.length > 0,
+        artCostText: isMin ? '+M' : '-M',
+        artSignText: isMin ? '+M' : '-M'
+    };
+
+    function snapshotTableau(currentBase, currentA) {
+        const rows = [];
+        for (let i = 0; i < m; i++) {
+            rows.push({
+                var: varNames[currentBase[i]],
+                colIdx: currentBase[i],
+                ck: costs[currentBase[i]],
+                B: currentA[i][totalCols],
+                row: currentA[i].slice(0, totalCols)
+            });
+        }
+        const zj_cj = [];
+        let Z = new BigM(F(0), F(0));
+        for (let j = 0; j < totalCols; j++) {
+            let zj = new BigM(F(0), F(0));
+            for (let i = 0; i < m; i++) {
+                const cost = costs[currentBase[i]];
+                zj = zj.add(cost.mul(currentA[i][j]));
+            }
+            const costJ = costs[j];
+            zj_cj.push(zj.sub(costJ));
+        }
+        for (let i = 0; i < m; i++) {
+            const cost = costs[currentBase[i]];
+            Z = Z.add(cost.mul(currentA[i][totalCols]));
+        }
+        const phaseName = artCols.length > 0 ? 'Método Simplex (Gran M)' : 'Método Simplex';
+        return { phaseName, cols: [...varNames], costs: [...costs], baseRows: rows, zj_cj, Z };
+    }
+
+    const iterations = [];
+    let isUnbounded = false;
+
+    for (let it = 0; it < 50; it++) {
+        const snap = snapshotTableau(base, A);
+
+        let inCol = -1;
+        let targetVal = null;
+
+        if (!isMin) {
+            // MAX: most negative enters
+            let minVal = new BigM(F(0), F(0));
+            for (let j = 0; j < totalCols; j++) {
+                if (snap.zj_cj[j].lt(minVal)) {
+                    minVal = snap.zj_cj[j];
+                    inCol = j;
+                }
+            }
+            targetVal = minVal;
+            if (inCol === -1 || minVal.gte(new BigM(F(0), F(0)))) {
+                iterations.push({
+                    isOptimal: true,
+                    isFinalOptimal: true,
+                    snap,
+                    explanation: '<b>¡Condición de optimalidad alcanzada!</b> Todos los indicadores netos $z_j - c_j \\ge 0$. Ninguna variable no básica puede ingresar para incrementar el funcional.'
+                });
+                break;
+            }
+        } else {
+            // MIN: most positive enters
+            let maxVal = new BigM(F(0), F(0));
+            for (let j = 0; j < totalCols; j++) {
+                if (snap.zj_cj[j].gt(maxVal)) {
+                    maxVal = snap.zj_cj[j];
+                    inCol = j;
+                }
+            }
+            targetVal = maxVal;
+            if (inCol === -1 || maxVal.lte(new BigM(F(0), F(0)))) {
+                iterations.push({
+                    isOptimal: true,
+                    isFinalOptimal: true,
+                    snap,
+                    explanation: '<b>¡Condición de optimalidad alcanzada!</b> Todos los indicadores netos $z_j - c_j \\le 0$. Ninguna variable no básica puede ingresar para reducir el funcional.'
+                });
+                break;
+            }
+        }
+
+        let outRow = -1;
+        let minRatio = null;
+        const ratios = [];
+        let tieBreak = false;
+
+        for (let i = 0; i < m; i++) {
+            if (A[i][inCol].gt(F(0))) {
+                let ratio = A[i][totalCols].div(A[i][inCol]);
+                ratios.push({ row: i, ratio });
+                if (minRatio === null || ratio.lt(minRatio)) {
+                    minRatio = ratio;
+                    outRow = i;
+                    tieBreak = false;
+                } else if (ratio.equals(minRatio)) {
+                    tieBreak = true;
+                }
+            } else {
+                ratios.push({ row: i, ratio: null });
+            }
+        }
+
+        if (outRow === -1) {
+            isUnbounded = true;
+            iterations.push({
+                isUnbounded: true,
+                snap,
+                inCol,
+                inVar: varNames[inCol],
+                explanation: `🚨 <b>Problema No Acotado (Poliedro Abierto):</b> La variable entrante <b>${varNames[inCol]}</b> tiene todos sus coeficientes no positivos ($a_{ij} \\le 0$). Su valor puede crecer indefinidamente.`
+            });
+            break;
+        }
+
+        let tieMsg = tieBreak ? ' <br>⚠️ <b>Empate en ratio $\\theta$:</b> Se detectó empate entre dos o más filas. Se elige la primera fila por regla de desempate.' : '';
+        const indicatorText = isMin ? `más positivo $z_j - c_j = ${targetVal.toTex()}$` : `más negativo $z_j - c_j = ${targetVal.toTex()}$`;
+        iterations.push({
+            isOptimal: false,
+            snap,
+            inCol,
+            inVar: varNames[inCol],
+            outRow,
+            outVar: varNames[base[outRow]],
+            pivotVal: A[outRow][inCol],
+            ratios,
+            tieBreak,
+            explanation: `<b>Iteración de Pivoteo:</b><br>` +
+                         `• <b>Variable Entrante:</b> <b>${varNames[inCol]}</b> (indicador ${indicatorText}).<br>` +
+                         `• <b>Variable Saliente:</b> <b>${varNames[base[outRow]]}</b> con ratio mínimo $\\theta = ${minRatio.toTex()}$.${tieMsg}<br>` +
+                         `• <b>Elemento Pivote:</b> $a_{${outRow+1},${inCol+1}} = ${A[outRow][inCol].toTex()}$.`
+        });
+
+        // Pivot
+        let pivot = A[outRow][inCol];
+        A[outRow] = A[outRow].map(x => x.div(pivot));
+        for (let i = 0; i < m; i++) {
+            if (i !== outRow) {
+                let factor = A[i][inCol];
+                A[i] = A[i].map((val, k) => val.sub(factor.mul(A[outRow][k])));
+            }
+        }
+        base[outRow] = inCol;
+    }
+
+    if (isUnbounded) {
+        return {
+            verdict: 'UNBOUNDED',
+            title: 'Polígono Abierto (No Acotado)',
+            badgeClass: 'unbounded',
+            verdictMsg: 'El funcional objetivo puede mejorar indefinidamente ($Z \\to \\pm\\infty$). El poliedro es abierto en la dirección de la variable entrante.',
+            iterations,
+            sense: objSense,
+            dualSense: (objSense === 'MAX') ? 'MIN' : 'MAX',
+            varNames,
+            dualVarNames,
+            origCosts: objCoeffs,
+            origResources: constrs.map(c => c.rhs),
+            standardForm
+        };
+    }
+
+    const finalSnap = iterations[iterations.length - 1].snap;
+
+    // Check Incompatibility: any artificial variable remains in base with B_i > 0
+    let isIncompatible = false;
+    let incompArtVar = '';
+    for (let i = 0; i < m; i++) {
+        const bIdx = base[i];
+        if (artCols.some(ac => ac.col === bIdx) && A[i][totalCols].gt(F(0))) {
+            isIncompatible = true;
+            incompArtVar = varNames[bIdx];
+            break;
+        }
+    }
+
+    if (isIncompatible) {
+        return {
+            verdict: 'INCOMPATIBLE',
+            title: 'Sistema Incompatible',
+            badgeClass: 'incompatible',
+            verdictMsg: `El sistema no posee ninguna solución factible ($\\\\mathcal{R} = \\\\emptyset$). La variable artificial <b>${incompArtVar}</b> no pudo eliminarse de la base y mantiene la penalización $M$ en el funcional ($Z = ${finalSnap.Z.toTex()}$).`,
+            iterations,
+            sense: objSense,
+            dualSense: (objSense === 'MAX') ? 'MIN' : 'MAX',
+            Z: finalSnap.Z,
+            varNames,
+            dualVarNames,
+            origCosts: objCoeffs,
+            origResources: constrs.map(c => c.rhs),
+            base: finalSnap.baseRows.map(b => ({
+                var: b.var,
+                ck: (b.ck.q && b.ck.q.isZero()) ? b.ck.p : b.ck,
+                B: b.B,
+                row: b.row
+            })),
+            zj_cj: finalSnap.zj_cj.map(z => (z.q && z.q.isZero()) ? z.p : z),
+            standardForm
+        };
+    }
+
+    let finalZ = finalSnap.Z.q.isZero() ? finalSnap.Z.p : finalSnap.Z;
+
+    // Degeneracy
+    let isDegenerate = false;
+    for (let i = 0; i < m; i++) {
+        if (finalSnap.baseRows[i].B.isZero()) {
+            isDegenerate = true;
+            break;
+        }
+    }
+
+    // Alternative solutions
+    let hasAlternatives = false;
+    let altVar = null;
+    for (let j = 0; j < totalCols; j++) {
+        const inBase = base.includes(j);
+        if (!inBase && !artCols.some(ac => ac.col === j) && finalSnap.zj_cj[j].isZero()) {
+            const canPivot = A.some(row => row[j].gt(F(0)));
+            if (canPivot) {
+                hasAlternatives = true;
+                altVar = varNames[j];
+                break;
+            }
+        }
+    }
+
+    let verdictTitle = 'Solución Óptima Única Factible';
+    let verdict = 'OPTIMAL_UNIQUE';
+    let badgeClass = 'optimal';
+    let verdictMsg = `Se alcanzó la solución óptima única con $Z = ${finalZ.toTex()}$. Todos los indicadores de variables no básicas son estrictamente no nulos.`;
+
+    if (hasAlternatives && isDegenerate) {
+        verdict = 'OPTIMAL_ALT_DEGENERATE';
+        verdictTitle = 'Soluciones Múltiples (Alternativas) y Degenerada';
+        badgeClass = 'alternative';
+        verdictMsg = `Existen infinitas soluciones óptimas con $Z = ${finalZ.toTex()}$ (la variable no básica ${altVar} tiene $z_j - c_j = 0$), y además la base es degenerada ($B = 0$).`;
+    } else if (hasAlternatives) {
+        verdict = 'OPTIMAL_ALTERNATIVES';
+        verdictTitle = 'Soluciones Múltiples (Alternativas)';
+        badgeClass = 'alternative';
+        verdictMsg = `Existen infinitas soluciones óptimas con el mismo valor $Z = ${finalZ.toTex()}$. La variable no básica <b>${altVar}</b> tiene indicador neto $z_j - c_j = 0$.`;
+    } else if (isDegenerate) {
+        verdict = 'OPTIMAL_DEGENERATE';
+        verdictTitle = 'Solución Óptima Degenerada';
+        badgeClass = 'degenerate';
+        verdictMsg = `Se alcanzó la solución óptima con $Z = ${finalZ.toTex()}$, pero es **degenerada** ya que al menos una variable básica tiene valor $B = 0$.`;
+    }
+
+    const origResources = constrs.map(c => c.rhs);
+    const origCosts = [...objCoeffs];
+    for (let i = 0; i < constraintCols.length; i++) origCosts.push(F(0));
+
+    return {
+        id: 'solved_primal',
+        title: verdictTitle,
+        verdict,
+        badgeClass,
+        verdictMsg,
+        sense: objSense,
+        dualSense: (objSense === 'MAX') ? 'MIN' : 'MAX',
+        Z: finalZ,
+        varNames,
+        dualVarNames,
+        origCosts,
+        origResources,
+        eqCoeffs: constrs,
+        base: finalSnap.baseRows.map(b => ({
+            var: b.var,
+            ck: (b.ck.q && b.ck.q.isZero()) ? b.ck.p : b.ck,
+            B: b.B,
+            row: b.row
+        })),
+        zj_cj: finalSnap.zj_cj.map(z => (z.q && z.q.isZero()) ? z.p : z),
+        iterations,
+        standardForm
+    };
+}
+
+        // Backward compatibility wrapper
+        function solveSimplexPrimal(objSense, objCoeffs, constraints) {
+            return solveSimplexWithHistory(objSense, objCoeffs, constraints);
+        }
+
+        // SOLVE DUAL TABLE
+        function solveDual(data) {
+            const isMaxToMin = (data.sense === 'MAX');
+            const primalNB = [];
+            data.varNames.forEach((v, idx) => {
+                if (v.includes('\\mu') || v.includes('mu_')) return;
+                const inBase = data.base.some(b => b.var.trim().toLowerCase() === v.trim().toLowerCase());
+                if (!inBase) {
+                    primalNB.push({
+                        name: v,
+                        idx: idx,
+                        dualName: data.dualVarNames[idx] || ('y' + (idx + 1)),
+                        zj_cj: data.zj_cj[idx] || F(0)
+                    });
+                }
+            });
+
+            function getDualVarCost(dualVarName, origResources) {
+                if (!origResources || origResources.length === 0) return F(0);
+                const m = origResources.length;
+                const match = dualVarName.match(/y_?\{?(\d+)\}?/);
+                if (match) {
+                    const k = parseInt(match[1], 10);
+                    if (k >= 1 && k <= m) {
+                        return origResources[k - 1];
+                    }
+                }
+                return F(0);
+            }
+
+            const dualBase = [];
+            primalNB.forEach(nb => {
+                const cost = getDualVarCost(nb.dualName, data.origResources);
+                dualBase.push({
+                    dualVar: nb.dualName,
+                    primalNBVar: nb.name,
+                    primalNBIdx: nb.idx,
+                    B: isMaxToMin ? nb.zj_cj : nb.zj_cj.neg(),
+                    ck: cost
+                });
+            });
+
+            const dualNB = [];
+            data.base.forEach((bRow, rIdx) => {
+                const varIdx = data.varNames.findIndex(v => v.trim().toLowerCase() === bRow.var.trim().toLowerCase());
+                dualNB.push({
+                    dualVar: data.dualVarNames[varIdx] || ('y_nb_' + rIdx),
+                    primalBVar: bRow.var,
+                    primalRowIdx: rIdx,
+                    primalBVal: bRow.B
+                });
+            });
+
+            // Natural ascending sort: y1, y2, y3, y4, y5, y6 ...
+            const sortedDualVarNames = [...data.dualVarNames].sort((a, b) => {
+                const numA = parseInt(a.replace(/\D/g, ''), 10) || 0;
+                const numB = parseInt(b.replace(/\D/g, ''), 10) || 0;
+                return numA - numB;
+            });
+
+            const dualMatrixRows = [];
+            dualBase.forEach(db => {
+                const row = [];
+                sortedDualVarNames.forEach(dvName => {
+                    const matchB = dualBase.find(d => d.dualVar === dvName);
+                    if (matchB) {
+                        row.push(matchB.dualVar === db.dualVar ? F(1) : F(0));
+                    } else {
+                        const dnb = dualNB.find(d => d.dualVar === dvName);
+                        if (dnb) {
+                            const primalVal = data.base[dnb.primalRowIdx].row[db.primalNBIdx] || F(0);
+                            row.push(primalVal.neg());
+                        } else {
+                            row.push(F(0));
+                        }
+                    }
+                });
+                dualMatrixRows.push(row);
+            });
+
+            const dualZjCj = [];
+            sortedDualVarNames.forEach(dvName => {
+                const isB = dualBase.some(d => d.dualVar === dvName);
+                if (isB) {
+                    dualZjCj.push(F(0));
+                } else {
+                    const dnb = dualNB.find(d => d.dualVar === dvName);
+                    if (dnb) {
+                        dualZjCj.push(isMaxToMin ? dnb.primalBVal.neg() : dnb.primalBVal);
+                    } else {
+                        dualZjCj.push(F(0));
+                    }
+                }
+            });
+
+            return {
+                dualVarNames: sortedDualVarNames,
+                dualBase: dualBase,
+                dualNB: dualNB,
+                matrixRows: dualMatrixRows,
+                zj_cj: dualZjCj,
+                W: data.Z
+            };
+        }
+
+        // RENDER EQUATION BUILDER FORM
+        function renderEquationForm() {
+            const nVars = parseInt(document.getElementById('eq-n-vars').value, 10);
+            const nRows = parseInt(document.getElementById('eq-n-rows').value, 10);
+            const sense = document.getElementById('eq-sense').value;
+
+            let html = `<div style="display: flex; flex-direction: column; gap: 14px;">`;
+            
+            // Objective Function
+            html += `<div style="background: rgba(0,0,0,0.3); padding: 12px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">`;
+            html += `<b style="color: var(--primary); font-size: 0.95rem;">${sense} Z = </b>`;
+            for (let j = 1; j <= nVars; j++) {
+                html += `<input type="text" class="cell-input" id="eq-c-${j}" value="${4 - j + 1}" style="width: 60px;"> $x_${j}$`;
+                if (j < nVars) html += ` <span>+</span> `;
+            }
+            html += `</div>`;
+
+            // Constraints
+            html += `<div style="display: flex; flex-direction: column; gap: 8px;">`;
+            html += `<b style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Sujeto a las Restricciones:</b>`;
+            for (let i = 1; i <= nRows; i++) {
+                html += `<div style="background: rgba(0,0,0,0.2); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">`;
+                html += `<span style="color: var(--text-muted); width: 30px; font-weight: 700;">R${i}:</span>`;
+                for (let j = 1; j <= nVars; j++) {
+                    const defaultVal = (i === j) ? "2" : "1";
+                    html += `<input type="text" class="cell-input" id="eq-a-${i}-${j}" value="${defaultVal}" style="width: 55px;"> $x_${j}$`;
+                    if (j < nVars) html += ` <span>+</span> `;
+                }
+                html += ` <select class="cell-select" id="eq-sign-${i}" style="width: 55px; font-weight: 800; color: var(--primary);">
+                    <option value="<=" selected>&le;</option>
+                    <option value=">=">&ge;</option>
+                    <option value="=">=</option>
+                </select> `;
+                html += `<input type="text" class="cell-input" id="eq-b-${i}" value="${10 * i}" style="width: 75px;" placeholder="b${i}">`;
+                html += `</div>`;
+            }
+            html += `</div></div>`;
+
+            document.getElementById('equation-builder-container').innerHTML = html;
+            renderLatex(document.getElementById('equation-builder-container'));
+        }
+
+        function loadPresetEquations(presetKey) {
+            const p = PRESETS[presetKey];
+            if (!p || !p.eqCoeffs) return;
+            const nVars = p.eqCoeffs[0].coeffs.length;
+            const nRows = p.eqCoeffs.length;
+
+            document.getElementById('eq-sense').value = p.sense;
+            document.getElementById('eq-n-vars').value = nVars;
+            document.getElementById('eq-n-rows').value = nRows;
+
+            renderEquationForm();
+
+            for (let j = 1; j <= nVars; j++) {
+                document.getElementById(`eq-c-${j}`).value = p.origCosts[j - 1].toTex();
+            }
+            for (let i = 1; i <= nRows; i++) {
+                for (let j = 1; j <= nVars; j++) {
+                    document.getElementById(`eq-a-${i}-${j}`).value = p.eqCoeffs[i - 1].coeffs[j - 1].toTex();
+                }
+                if (p.eqCoeffs[i - 1].sign) {
+                    document.getElementById(`eq-sign-${i}`).value = p.eqCoeffs[i - 1].sign;
+                }
+                document.getElementById(`eq-b-${i}`).value = p.eqCoeffs[i - 1].rhs.toTex();
+            }
+            renderLatex(document.getElementById('equation-builder-container'));
+        }
+
+        function readCurrentEquations() {
+            const nVars = parseInt(document.getElementById('eq-n-vars').value, 10);
+            const nRows = parseInt(document.getElementById('eq-n-rows').value, 10);
+            const sense = document.getElementById('eq-sense').value;
+
+            const c = [];
+            for (let j = 1; j <= nVars; j++) {
+                c.push(F(document.getElementById(`eq-c-${j}`).value));
+            }
+
+            const constraints = [];
+            for (let i = 1; i <= nRows; i++) {
+                const coeffs = [];
+                for (let j = 1; j <= nVars; j++) {
+                    coeffs.push(F(document.getElementById(`eq-a-${i}-${j}`).value));
+                }
+                const sign = document.getElementById(`eq-sign-${i}`).value;
+                const rhs = F(document.getElementById(`eq-b-${i}`).value);
+                constraints.push({ coeffs, sign, rhs });
+            }
+
+            return { sense, nVars, nRows, c, constraints };
+        }
+
+        // PANEL CONTROLS (MUTUALLY EXCLUSIVE)
+        function hideAllActionPanels() {
+            document.getElementById('panel-simplex').style.display = 'none';
+            document.getElementById('panel-dual-eq').style.display = 'none';
+            document.getElementById('panel-dual-table').style.display = 'none';
+        }
+
+        let currentSimplexHistory = null;
+        let currentSimplexIter = 0;
+        let currentEmbeddedDualStep = 0;
+
+        function showPanel(panelType) {
+            hideAllActionPanels();
+
+            if (panelType === 'simplex') {
+                try {
+                    const { sense, c, constraints } = readCurrentEquations();
+                    currentSimplexHistory = solveSimplexWithHistory(sense, c, constraints);
+                    currentSimplexIter = 0;
+                    document.getElementById('panel-simplex').style.display = 'block';
+                    renderStandardFormBox(currentSimplexHistory.standardForm);
+                    renderSimplexStepper();
+                    document.getElementById('panel-simplex').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } catch (err) {
+                    alert(`Error en Simplex: ${err.message}`);
+                }
+            } else if (panelType === 'dual-eq') {
+                generateDualEquationsOnly();
+                document.getElementById('panel-dual-eq').style.display = 'block';
+                document.getElementById('panel-dual-eq').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } else if (panelType === 'dual-table') {
+                try {
+                    const { sense, c, constraints } = readCurrentEquations();
+                    currentSimplexHistory = solveSimplexWithHistory(sense, c, constraints);
+                    if (currentSimplexHistory.verdict === 'INCOMPATIBLE') {
+                        alert('El problema directo es Incompatible (sin solución factible). Por el Teorema Fundamental de la Dualidad, el Dual es No Acotado (Poliedro Abierto) o Incompatible.');
+                        return;
+                    }
+                    if (currentSimplexHistory.verdict === 'UNBOUNDED') {
+                        alert('El problema directo es No Acotado (Poliedro Abierto). Por el Teorema Fundamental de la Dualidad, el Dual es Incompatible.');
+                        return;
+                    }
+                    currentData = currentSimplexHistory;
+                    currentEmbeddedDualStep = 0;
+                    document.getElementById('panel-dual-table').style.display = 'block';
+                    renderEmbeddedDualStep();
+                    document.getElementById('panel-dual-table').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } catch (err) {
+                    alert(`Error al generar Dual: ${err.message}`);
+                }
+            }
+        }
+
+        // STANDARD FORM RENDERER BOX
+        function renderStandardFormBox(standardForm) {
+            const container = document.getElementById('simplex-standard-form-container');
+            if (!container) return;
+            if (!standardForm) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let stepsHtml = standardForm.steps.map(s => `
+                <div style="margin-bottom: 8px; line-height: 1.5;">
+                    <b style="color: var(--primary);">Restricción $R_{${s.rowIdx}}$:</b> ${s.explanation}
+                </div>
+            `).join('');
+
+            let eqHtml = standardForm.equations.map((eq, i) => `
+                <div style="margin-bottom: 4px;">$$R_{${i+1}}: \\quad ${eq}$$</div>
+            `).join('');
+
+            let initBaseHtml = standardForm.initialBase.map(v => formatVarMath(v)).join(', ');
+
+            let artNotice = standardForm.hasArtificials
+                ? `<div style="background: rgba(249, 115, 22, 0.12); border-left: 3px solid var(--accent-dual); padding: 8px 12px; border-radius: 4px; font-size: 0.88rem; margin-top: 12px; color: var(--text);">
+                     💡 <b>Presencia de Variables Artificiales ($\\mu_i$ / $\\lambda_i$):</b> Al existir restricciones $\\ge$ o $=$, se incorporaron variables artificiales para proveer vectores canónicos unitarios para la base inicial. En el funcional se penalizan con costo $c_k = ${standardForm.artCostText}$ mediante el <b>Método de la Gran M</b>, buscando expulsarlas de la base para alcanzar la solución factible real.
+                   </div>`
+                : `<div style="background: rgba(16, 185, 129, 0.12); border-left: 3px solid #10b981; padding: 8px 12px; border-radius: 4px; font-size: 0.88rem; margin-top: 12px; color: var(--text);">
+                     💡 <b>Solo Variables de Holgura:</b> Como todas las restricciones son $\\le$ con términos independientes positivos ($b_i \\ge 0$), las holguras forman directamente la submatriz identidad $I_m$ sin necesidad de variables artificiales.
+                   </div>`;
+
+            let html = `
+                <div style="background: linear-gradient(180deg, rgba(17, 24, 39, 0.95), rgba(15, 23, 42, 0.95)); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px 18px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 10px;">
+                        <span style="font-size: 1.05rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px;">
+                            <span>📐 1. Planteo y Pasaje a la Forma Estándar (Holgura, Exceso y Artificiales)</span>
+                        </span>
+                        <button type="button" class="btn-step" onclick="toggleStandardFormDetails()" id="btn-toggle-std-form" style="padding: 4px 10px; font-size: 0.8rem; background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.3);">
+                            ▲ Ocultar planteo
+                        </button>
+                    </div>
+
+                    <div id="standard-form-content-body">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
+                            <!-- Columna 1: Reglas de conversión por restricción -->
+                            <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 12px 14px; font-size: 0.88rem;">
+                                <h4 style="margin: 0 0 10px 0; color: var(--text-main); font-size: 0.92rem; display: flex; align-items: center; gap: 6px;">
+                                    <span>⚙️ Reglas de Conversión y Variables Añadidas</span>
+                                </h4>
+                                ${stepsHtml}
+                                <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.88rem;">
+                                    <b style="color: var(--primary);">Base Inicial del Simplex ($\mathcal{B}_0$):</b> { ${initBaseHtml} }<br>
+                                    <span style="color: var(--text-muted); font-size: 0.82rem;">(Estas variables forman la matriz identidad $I_m$ para la Tabla 0).</span>
+                                </div>
+                            </div>
+
+                            <!-- Columna 2: Modelo Estándar en LaTeX -->
+                            <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 12px 14px; font-size: 0.88rem;">
+                                <h4 style="margin: 0 0 10px 0; color: var(--text-main); font-size: 0.92rem; display: flex; align-items: center; gap: 6px;">
+                                    <span>📝 Sistema Ampliado en Forma Estándar</span>
+                                </h4>
+                                <div style="font-family: var(--font-mono); font-size: 0.9rem; line-height: 1.6;">
+                                    <div>$$${standardForm.objTex}$$</div>
+                                    <div style="margin: 6px 0; font-weight: 600; color: var(--text-muted); font-size: 0.82rem;">Sujeto a:</div>
+                                    ${eqHtml}
+                                    <div style="margin-top: 6px; color: var(--primary); font-size: 0.86rem;">
+                                        $$${standardForm.nonNegTex}$$
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        ${artNotice}
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        function toggleStandardFormDetails() {
+            const body = document.getElementById('standard-form-content-body');
+            const btn = document.getElementById('btn-toggle-std-form');
+            if (!body || !btn) return;
+            if (body.style.display === 'none') {
+                body.style.display = 'block';
+                btn.innerText = '▲ Ocultar planteo';
+            } else {
+                body.style.display = 'none';
+                btn.innerText = '▼ Ver planteo';
+            }
+        }
+
+        // SIMPLEX PRIMAL STEPPER FUNCTIONS
+        function changeSimplexIter(delta) {
+            if (!currentSimplexHistory || !currentSimplexHistory.iterations) return;
+            const maxIter = currentSimplexHistory.iterations.length - 1;
+            currentSimplexIter = Math.max(0, Math.min(maxIter, currentSimplexIter + delta));
+            renderSimplexStepper();
+        }
+
+        function goToSimplexIter(idx) {
+            if (!currentSimplexHistory || !currentSimplexHistory.iterations) return;
+            const maxIter = currentSimplexHistory.iterations.length - 1;
+            if (idx === -1) idx = maxIter;
+            currentSimplexIter = Math.max(0, Math.min(maxIter, idx));
+            renderSimplexStepper();
+        }
+
+        function renderSimplexStepper() {
+            if (!currentSimplexHistory || !currentSimplexHistory.iterations) return;
+            const history = currentSimplexHistory;
+            const iters = history.iterations;
+            const cur = iters[currentSimplexIter];
+            const maxIter = iters.length - 1;
+
+            // Update badge & phase
+            const badgeText = (currentSimplexIter === 0) ? 'Tabla Inicial' : (currentSimplexIter === maxIter ? 'Tabla Final' : `Iteración ${currentSimplexIter}`);
+            document.getElementById('simplex-step-badge').innerText = badgeText;
+            document.getElementById('simplex-step-phase').innerText = cur.snap ? cur.snap.phaseName : 'Método Simplex';
+
+            // Buttons state
+            document.getElementById('btn-simplex-first').disabled = (currentSimplexIter === 0);
+            document.getElementById('btn-simplex-prev').disabled = (currentSimplexIter === 0);
+            document.getElementById('btn-simplex-next').disabled = (currentSimplexIter === maxIter);
+            document.getElementById('btn-simplex-last').disabled = (currentSimplexIter === maxIter);
+
+            // Explanation box
+            document.getElementById('simplex-iter-explanation').innerHTML = cur.explanation || '';
+
+            // Render Tableau
+            if (cur.snap) {
+                const snap = cur.snap;
+                let html = `<table class="simplex-table"><thead><tr>`;
+                html += `<th>$c_k$</th><th>$x_k$</th><th>$B$</th>`;
+                snap.cols.forEach((col, cIdx) => {
+                    const hlCol = (cIdx === cur.inCol) ? 'hl-entering' : '';
+                    const costTex = (snap.costs && snap.costs[cIdx]) ? snap.costs[cIdx].toTex() : '';
+                    const costSub = costTex !== '' ? `<div style="font-size:0.75rem; font-weight:normal; opacity:0.85; margin-bottom:2px;">$c_j = ${costTex}$</div>` : '';
+                    html += `<th class="${hlCol}">${costSub}${formatVarMath(col)}</th>`;
+                });
+                html += `<th>$\\theta = \\frac{B_i}{a_{ij}}$</th>`;
+                html += `</tr></thead><tbody>`;
+
+                snap.baseRows.forEach((bRow, rIdx) => {
+                    const isLeavingRow = (rIdx === cur.outRow);
+                    const rowClass = isLeavingRow ? 'hl-leaving' : '';
+
+                    html += `<tr class="${rowClass}">`;
+                    html += `<td>${bRow.ck.toTex()}</td>`;
+                    html += `<td class="cell-base">${formatVarMath(bRow.var)}</td>`;
+                    html += `<td class="cell-b">${bRow.B.toTex()}</td>`;
+
+                    bRow.row.forEach((cell, cIdx) => {
+                        let cellClass = '';
+                        if (rIdx === cur.outRow && cIdx === cur.inCol) {
+                            cellClass = 'hl-pivot';
+                        } else if (cIdx === cur.inCol) {
+                            cellClass = 'hl-entering';
+                        } else if (rIdx === cur.outRow) {
+                            cellClass = 'hl-leaving';
+                        }
+                        html += `<td class="${cellClass}">${cell.toTex()}</td>`;
+                    });
+
+                    // Ratio theta
+                    let thetaVal = '---';
+                    if (cur.ratios && cur.ratios[rIdx] && cur.ratios[rIdx].ratio !== null) {
+                        thetaVal = cur.ratios[rIdx].ratio.toTex();
+                    }
+                    const hlTheta = isLeavingRow ? 'hl-target' : '';
+                    html += `<td class="${hlTheta}"><b>${thetaVal}</b></td>`;
+                    html += `</tr>`;
+                });
+
+                // Z row
+                html += `<tr class="zj-row">`;
+                html += `<td></td><td>$z_j - c_j$</td>`;
+                html += `<td><b>${snap.Z.toTex()}</b></td>`;
+                snap.zj_cj.forEach((zVal, cIdx) => {
+                    const hlCol = (cIdx === cur.inCol) ? 'hl-entering' : '';
+                    html += `<td class="${hlCol}"><b>${zVal.toTex()}</b></td>`;
+                });
+                html += `<td></td></tr></tbody></table>`;
+
+                document.getElementById('simplex-tableau-container').innerHTML = html;
+            }
+
+            // Verdict Container on Final Iteration
+            const verdictBox = document.getElementById('simplex-verdict-container');
+            if (currentSimplexIter === maxIter && history.verdict) {
+                let badgeClass = history.badgeClass || 'optimal';
+                let html = `<div class="verdict-card">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                        <span class="verdict-badge ${badgeClass}">⚖️ Veredicto: ${history.title}</span>
+                        <span style="font-family: var(--font-mono); font-weight: 700; color: var(--primary);">Z* = ${history.Z ? history.Z.toTex() : '---'}</span>
+                    </div>
+                    <p style="margin: 0; color: var(--text); font-size: 0.95rem; line-height: 1.5;">${history.verdictMsg}</p>`;
+
+                if (history.base && history.base.length > 0) {
+                    const solVars = history.base.map(b => `${formatVarMath(b.var)} = ${b.B.toTex()}`).join(', ');
+                    html += `<div style="background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 6px; font-size: 0.9rem;">
+                        <b>Variables básicas en el óptimo:</b> ${solVars}
+                    </div>`;
+                }
+
+                html += `</div>`;
+                verdictBox.innerHTML = html;
+                verdictBox.style.display = 'block';
+            } else {
+                verdictBox.style.display = 'none';
+                verdictBox.innerHTML = '';
+            }
+
+            renderLatex(document.getElementById('panel-simplex'));
+        }
+
+        // BUTTON 1 (LEGACY): FORMULAR DUAL SIMBÓLICO
+        function generateDualEquationsOnly() {
+            const { sense, nVars, nRows, c, constraints } = readCurrentEquations();
+            const dualSense = (sense === 'MAX') ? 'MIN' : 'MAX';
+            const dualComp = (sense === 'MAX') ? '\\ge' : '\\le';
+
+            let dualText = `$$\\mathbf{\\text{${dualSense} } W = `;
+            for (let i = 0; i < nRows; i++) {
+                dualText += `${constraints[i].rhs.toTex()} y_${i + 1}`;
+                if (i < nRows - 1) dualText += ` + `;
+            }
+            dualText += `}$$<br><b>Sujeto a las restricciones:</b><br>`;
+
+            for (let j = 0; j < nVars; j++) {
+                let restr = `$$`;
+                for (let i = 0; i < nRows; i++) {
+                    const aVal = constraints[i].coeffs[j].toTex();
+                    restr += `${aVal} y_${i + 1}`;
+                    if (i < nRows - 1) restr += ` + `;
+                }
+                restr += ` ${dualComp} ${c[j].toTex()} \\quad \\text{(para } x_${j + 1}\\text{)}$$`;
+                dualText += restr;
+            }
+
+            dualText += `<br><b>Condiciones sobre las variables duales:</b><br>`;
+            const signConditions = [];
+            for (let i = 0; i < nRows; i++) {
+                const s = constraints[i].sign;
+                if (sense === 'MAX') {
+                    if (s === '<=') signConditions.push(`y_${i + 1} \\ge 0`);
+                    else if (s === '>=') signConditions.push(`y_${i + 1} \\le 0`);
+                    else signConditions.push(`y_${i + 1} \\text{ libre}`);
+                } else {
+                    if (s === '>=') signConditions.push(`y_${i + 1} \\ge 0`);
+                    else if (s === '<=') signConditions.push(`y_${i + 1} \\le 0`);
+                    else signConditions.push(`y_${i + 1} \\text{ libre}`);
+                }
+            }
+            dualText += `$$` + signConditions.join(', \\quad ') + `$$`;
+
+            document.getElementById('dual-symbolic-text').innerHTML = dualText;
+            renderLatex(document.getElementById('panel-dual-eq'));
+        }
+
+        // EMBEDDED DUAL STEPPER FUNCTIONS
+        function changeEmbeddedDualStep(delta) {
+            currentEmbeddedDualStep = Math.max(0, Math.min(totalSteps, currentEmbeddedDualStep + delta));
+            renderEmbeddedDualStep();
+        }
+
+        function resetEmbeddedDualStep() {
+            currentEmbeddedDualStep = 0;
+            renderEmbeddedDualStep();
+        }
+
+        function renderEmbeddedDualStep() {
+            if (!currentData) return;
+            const data = currentData;
+            const dual = solveDual(data);
+            const step = currentEmbeddedDualStep;
+
+            // Badges & Buttons
+            document.getElementById('embedded-dual-step-badge').innerText = `Paso ${step} de ${totalSteps}`;
+            const stepTitles = [
+                'Tabla Óptima Primal y Mapeo',
+                'Traslado del Funcional Óptimo',
+                'Base Dual e Identificación de Costos ck',
+                'Columnas Identidad de la Base Dual',
+                'Matriz Interna Negativa Transpuesta',
+                'Indicadores Netos y Optimalidad Dual',
+                'Correlación y Teorema Fundamental de la Dualidad'
+            ];
+            document.getElementById('embedded-dual-step-title').innerText = stepTitles[step] || '';
+            document.getElementById('btn-emb-dual-prev').disabled = (step === 0);
+            document.getElementById('btn-emb-dual-next').disabled = (step === totalSteps);
+
+            // Explanation
+            document.getElementById('embedded-dual-explanation').innerHTML = getStepExplanation(step, data, dual);
+
+            // Functionals
+            document.getElementById('emb-stepper-primal-z').innerText = `Z = ${data.Z ? data.Z.toTex() : '0'}`;
+            const wVal = (step >= 1) ? dual.W.toTex() : '---';
+            document.getElementById('emb-stepper-dual-w').innerText = `W = ${wVal}`;
+
+            // Render Primal Table
+            let primalHtml = `<table class="simplex-table"><thead><tr>`;
+            primalHtml += `<th>$c_k$</th><th>$x_k$</th><th>$B$</th>`;
+            data.varNames.forEach((v, i) => {
+                const dv = data.dualVarNames[i] || ('y' + (i + 1));
+                primalHtml += `<th>${formatVarMath(v)}<span class="col-dual-mapping">${formatVarMath(dv)}</span></th>`;
+            });
+            primalHtml += `</tr></thead><tbody>`;
+
+            data.base.forEach((bRow) => {
+                primalHtml += `<tr>`;
+                primalHtml += `<td>${bRow.ck.toTex()}</td>`;
+                primalHtml += `<td class="cell-base">${formatVarMath(bRow.var)}</td>`;
+                const hlB = (step === 5) ? 'hl-target' : '';
+                primalHtml += `<td class="cell-b ${hlB}">${bRow.B.toTex()}</td>`;
+                bRow.row.forEach((cell, cIdx) => {
+                    const isPrimalNB = !data.base.some(b => b.var.trim().toLowerCase() === data.varNames[cIdx].trim().toLowerCase());
+                    const hlCell = (step === 4 && isPrimalNB) ? 'hl-target' : '';
+                    primalHtml += `<td class="${hlCell}">${cell.toTex()}</td>`;
+                });
+                primalHtml += `</tr>`;
+            });
+
+            primalHtml += `<tr class="zj-row">`;
+            primalHtml += `<td></td><td>$z_j - c_j$</td>`;
+            const hlZ = (step === 1) ? 'hl-target' : '';
+            primalHtml += `<td class="${hlZ}"><b>${data.Z.toTex()}</b></td>`;
+            data.zj_cj.forEach((val, idx) => {
+                const isPrimalNB = !data.base.some(b => b.var.trim().toLowerCase() === data.varNames[idx].trim().toLowerCase());
+                const hlZj = (step === 2 && isPrimalNB) ? 'hl-target' : '';
+                primalHtml += `<td class="${hlZj}"><b>${val.toTex()}</b></td>`;
+            });
+            primalHtml += `</tr></tbody></table>`;
+            document.getElementById('emb-primal-table-container').innerHTML = primalHtml;
+
+            // Render Dual Table
+            let dualHtml = `<table class="simplex-table"><thead><tr>`;
+            dualHtml += `<th>$c_k$</th><th>$y_k$</th><th>$B$</th>`;
+            dual.dualVarNames.forEach(dv => {
+                dualHtml += `<th>${formatVarMath(dv)}</th>`;
+            });
+            dualHtml += `</tr></thead><tbody>`;
+
+            dual.dualBase.forEach((dbRow, rIdx) => {
+                dualHtml += `<tr>`;
+                const ckVal = (step >= 2) ? dbRow.ck.toTex() : '---';
+                const hlCk = (step === 2) ? 'hl-target' : '';
+                dualHtml += `<td class="${hlCk}">${ckVal}</td>`;
+
+                const ykVal = (step >= 2) ? formatVarMath(dbRow.dualVar) : '---';
+                const hlYk = (step === 2) ? 'hl-target' : '';
+                dualHtml += `<td class="cell-base ${hlYk}">${ykVal}</td>`;
+
+                const bVal = (step >= 2) ? dbRow.B.toTex() : '---';
+                const hlB = (step === 2) ? 'hl-target' : '';
+                dualHtml += `<td class="cell-b ${hlB}">${bVal}</td>`;
+
+                dual.matrixRows[rIdx].forEach((cell, cIdx) => {
+                    const targetDvName = dual.dualVarNames[cIdx];
+                    const isIdentityCol = dual.dualBase.some(d => d.dualVar === targetDvName);
+                    let cellVal = '·';
+                    let cellClass = '';
+
+                    if (isIdentityCol) {
+                        if (step >= 3) {
+                            cellVal = cell.toTex();
+                            cellClass = (step === 3) ? 'hl-identity' : '';
+                        }
+                    } else {
+                        if (step >= 4) {
+                            cellVal = cell.toTex();
+                            cellClass = (step === 4) ? 'hl-target' : '';
+                        }
+                    }
+                    dualHtml += `<td class="${cellClass}">${cellVal}</td>`;
+                });
+                dualHtml += `</tr>`;
+            });
+
+            // Dual zj - cj row
+            dualHtml += `<tr class="zj-row">`;
+            dualHtml += `<td></td><td>$z_j - c_j$</td>`;
+            const hlW = (step === 1) ? 'hl-target' : '';
+            dualHtml += `<td class="${hlW}"><b>${wVal}</b></td>`;
+
+            dual.zj_cj.forEach((val, idx) => {
+                const targetDvName = dual.dualVarNames[idx];
+                const isBase = dual.dualBase.some(d => d.dualVar === targetDvName);
+                let cellVal = '·';
+                let cellClass = '';
+
+                if (isBase) {
+                    if (step >= 3) {
+                        cellVal = '0';
+                        cellClass = (step === 3) ? 'hl-identity' : '';
+                    }
+                } else {
+                    if (step >= 5) {
+                        cellVal = val.toTex();
+                        cellClass = (step === 5) ? 'hl-target' : '';
+                    }
+                }
+                dualHtml += `<td class="${cellClass}"><b>${cellVal}</b></td>`;
+            });
+
+            dualHtml += `</tr></tbody></table>`;
+            document.getElementById('emb-dual-table-container').innerHTML = dualHtml;
+
+            // Step 6 Verdict Card
+            const step6Box = document.getElementById('embedded-step6-verdict-container');
+            if (step === 6) {
+                const primalVerdict = data.title || 'Solución Óptima Única Factible';
+                const primalZ = data.Z ? data.Z.toTex() : '0';
+                const dualW = dual.W ? dual.W.toTex() : '0';
+
+                let html = `<div class="verdict-card">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                        <span class="verdict-badge optimal">⚖️ Correlación del Teorema Fundamental de la Dualidad (Diapo 58)</span>
+                        <span style="font-family: var(--font-mono); font-weight: 700; color: var(--accent-dual);">Z* = W* = ${primalZ}</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-top: 8px;">
+                        <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; border: 1px solid rgba(59,130,246,0.3);">
+                            <b style="color: var(--primary);">Problema Directo (Primal):</b><br>
+                            • Estado: <b>${primalVerdict}</b><br>
+                            • Valor Óptimo: <b>Z* = ${primalZ}</b>
+                        </div>
+                        <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; border: 1px solid rgba(249,115,22,0.3);">
+                            <b style="color: var(--accent-dual);">Problema Dual:</b><br>
+                            • Estado: <b>Solución Óptima Finita Confirmada</b><br>
+                            • Valor Óptimo: <b>W* = ${dualW}</b>
+                        </div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 10px 14px; border-radius: 6px; font-size: 0.9rem; line-height: 1.5;">
+                        <b>Cumplimiento del Teorema de Dualidad Fuerte:</b> Como el Primal es finito y factible con $Z^* = ${primalZ}$, el Dual alcanza idéntico óptimo finito $W^* = ${dualW}$. Los multiplicadores sombra en la fila $z_j - c_j$ del Dual reflejan con exactitud las variables directas $B$.
+                    </div>
+                </div>`;
+                step6Box.innerHTML = html;
+                step6Box.style.display = 'block';
+            } else {
+                step6Box.style.display = 'none';
+                step6Box.innerHTML = '';
+            }
+
+            renderLatex(document.getElementById('panel-dual-table'));
+        }
+
+        // STEPPER (STANDALONE TAB 2)
+        function getStepExplanation(step, data, dual) {
+            const zVal = data.Z ? data.Z.toTex() : '0';
+            const nbVarsStr = dual.dualBase.map(d => `${formatVarMath(d.primalNBVar)} \\to ${formatVarMath(d.dualVar)}`).join(', ');
+            const bValsStr = dual.dualBase.map(d => `${formatVarMath(d.dualVar)} = ${d.B.toTex()}`).join(', ');
+            const bPrimalStr = dual.dualNB.map(d => `${formatVarMath(d.primalBVar)} = ${d.primalBVal.toTex()}`).join(', ');
+
+            // Build detailed breakdown of ck costs for dual base from RHS b_i
+            const m = data.origResources ? data.origResources.length : 0;
+            const ckDetails = dual.dualBase.map(d => {
+                const match = d.dualVar.match(/y_?\{?(\d+)\}?/);
+                const k = match ? parseInt(match[1], 10) : 0;
+                if (k >= 1 && k <= m) {
+                    return `<b>${formatVarMath(d.dualVar)}</b>: $c_k = b_{${k}} = ${d.ck.toTex()}$ (término independiente RHS de la restricción $R_{${k}}$ del directo)`;
+                } else {
+                    return `<b>${formatVarMath(d.dualVar)}</b>: $c_k = 0$ (variable dual de exceso/holgura, costo nulo en el funcional $W$)`;
+                }
+            }).join('<br>• ');
+
+            switch (step) {
+                case 0:
+                    return `Observá la <b>Tabla Óptima Primal</b>. Debajo de cada columna se rotulan las variables duales correspondientes: las holguras corresponden a las variables duales principales ($y_1, y_2, \\dots$), y las de decisión corresponden a los excesos duales.`;
+                case 1:
+                    return `Por el <b>Teorema Fundamental de la Dualidad</b>, el funcional óptimo se mantiene idéntico: $Z_{\\text{ópt}} = W_{\\text{ópt}}$. Trasladamos directamente el valor <b>Z = ${zVal}</b> al funcional dual <b>W = ${zVal}</b> (ver Diapo 39).`;
+                case 2:
+                    return `<b>1. Variables de la Base Dual ($y_k$ y $B$):</b><br>` +
+                           `Las variables <b>no básicas del Primal</b> (${nbVarsStr}) ingresan a la <b>base del Dual</b> (Diapos 40-41). Sus valores en la columna $B$ son exactamente sus indicadores netos $z_j - c_j$: <b>${bValsStr}</b>.<br><br>` +
+                           `<b>2. Origen de la Columna de Costos ($c_k$):</b><br>` +
+                           `En el funcional Dual ($W = \\sum b_i y_i$), los costos unitarios provienen directamente del vector de recursos originales (<b>RHS $b_i$</b>) de las restricciones del Primal:<br>` +
+                           `• ${ckDetails}<br><br>` +
+                           `<span style="color: var(--primary-light);">💡 <b>Regla de la Cátedra (Diapo 41):</b> Toda variable dual $y_i$ asociada a una restricción $R_i$ toma como costo $c_k$ el término independiente $b_i$ de esa restricción. Las variables de exceso/holgura duales tienen costo $0$.</span>`;
+                case 3:
+                    return `Toda variable que entra a la base dual genera una <b>columna de la matriz identidad</b> ($1$ en su fila correspondiente y $0$ en las demás) y su indicador neto en la última fila es exactamente <b>0</b> (ver Diapo 42).`;
+                case 4:
+                    return `La submatriz interna se calcula mediante la transposición y cambio de signo: <b>$\\bar{A}_{\\text{dual}} = -\\bar{A}_{\\text{primal}}^T$</b>. Es decir, <i>la fila del directo se convierte en columna del dual con signo invertido $(-1)$</i> (Diapos 43-44).`;
+                case 5:
+                    const isDualMin = (dual.dualSense === 'MIN' || data.sense === 'MAX');
+                    const signExpl = isDualMin
+                        ? 'con <b>signo invertido</b> (porque el Dual es de Minimización). Todos quedan $\\le 0$'
+                        : 'con <b>signo positivo</b> (porque el Dual es de Maximización). Todos quedan $\\ge 0$';
+                    return `Los valores del vector $B$ del directo (${bPrimalStr}) pasan a la fila $z_j - c_j$ del dual ${signExpl}, confirmando la <b>Optimalidad del Dual</b> (Diapo 45).`;
+                case 6:
+                    return `<b>Diagnóstico de Solución y Teorema Fundamental de la Dualidad (Diapo 58):</b><br><br>` +
+                           `El <b>Teorema Fundamental de la Dualidad</b> establece la correspondencia directa e indiscutible entre el problema Directo y su Dual:<br>` +
+                           `• <b>Directa Finita $\\iff$ Dual Finita:</b> Al ser la solución óptima del Primal finita ($Z = ${zVal}$), el Dual alcanza obligatoriamente el mismo óptimo finito ($W = ${zVal}$), verificando la dualidad fuerte $Z_{\\text{ópt}} = W_{\\text{ópt}}$.<br>` +
+                           `• <b>Degenerada $\\iff$ Alternativa:</b> Si el problema directo presenta degeneración (variable básica con $B = 0$ o empate en ratios $\\theta$), el dual presenta soluciones múltiples o alternativas ($z_j - c_j = 0$ en variable no básica), y viceversa.<br>` +
+                           `• <b>Incompatible $\\iff$ Poliedro Abierto (No Acotada):</b> Si uno de los problemas no tiene solución factible, el otro puede mejorar indefinidamente.<br><br>` +
+                           `<span style="color: var(--primary-light);">✅ <b>Conclusión:</b> Ambos modelos convergen en el mismo punto de equilibrio económico y geométrico.</span>`;
+            }
+            return '';
+        }
+
+        function renderStepper() {
+            try {
+                const data = currentData;
+                const dual = solveDual(data);
+                const step = currentStep;
+
+                document.getElementById('step-badge').innerText = `Paso ${step} de ${totalSteps}`;
+                const stepTitles = [
+                    'Tabla Óptima Primal y Mapeo de Variables',
+                    'Traslado del Funcional Óptimo Z ➔ W',
+                    'Base Dual e Identificación de Costos ck',
+                    'Identidad en Columnas de la Base Dual',
+                    'Submatriz Interna Negativa Transpuesta',
+                    'Indicadores Netos y Optimalidad Dual',
+                    'Correlación y Teorema Fundamental de la Dualidad'
+                ];
+                document.getElementById('step-title').innerText = stepTitles[step] || '';
+
+                document.getElementById('btn-prev').disabled = (step === 0);
+                document.getElementById('btn-next').disabled = (step === totalSteps);
+
+                document.getElementById('step-explanation').innerHTML = getStepExplanation(step, data, dual);
+                const pz = document.getElementById('primal-z-display') || document.getElementById('stepper-primal-z-display');
+                if (pz) pz.innerText = `Z = ${data.Z ? data.Z.toTex() : '0'}`;
+
+                const dw = document.getElementById('dual-w-display');
+                if (dw) dw.innerText = `W = ${(step >= 1) ? dual.W.toTex() : '---'}`;
+
+                const ps = document.getElementById('primal-badge-sense');
+                if (ps) ps.innerText = `PRIMAL (${data.sense || 'MAX'})`;
+
+                const ds = document.getElementById('dual-badge-sense');
+                if (ds) ds.innerText = `DUAL (${dual.sense || 'MIN'})`;
+
+                // Render Primal Table
+                let primalHtml = `<table class="simplex-table"><thead><tr>`;
+                primalHtml += `<th>$c_k$</th><th>$x_k$</th><th>$B$</th>`;
+                data.varNames.forEach((v, i) => {
+                    const dv = data.dualVarNames[i] || ('y' + (i + 1));
+                    primalHtml += `<th>${formatVarMath(v)}<span class="col-dual-mapping">${formatVarMath(dv)}</span></th>`;
+                });
+                primalHtml += `</tr></thead><tbody>`;
+
+                data.base.forEach((bRow) => {
+                    primalHtml += `<tr>`;
+                    primalHtml += `<td>${bRow.ck.toTex()}</td>`;
+                    primalHtml += `<td class="cell-base">${formatVarMath(bRow.var)}</td>`;
+                    const hlB = (step === 5) ? 'hl-target' : '';
+                    primalHtml += `<td class="cell-b ${hlB}">${bRow.B.toTex()}</td>`;
+                    bRow.row.forEach((cell, cIdx) => {
+                        const isPrimalNB = !data.base.some(b => b.var.trim().toLowerCase() === data.varNames[cIdx].trim().toLowerCase());
+                        const hlCell = (step === 4 && isPrimalNB) ? 'hl-target' : '';
+                        primalHtml += `<td class="${hlCell}">${cell.toTex()}</td>`;
+                    });
+                    primalHtml += `</tr>`;
+                });
+
+                primalHtml += `<tr class="zj-row">`;
+                primalHtml += `<td></td><td>$z_j - c_j$</td>`;
+                const hlZ = (step === 1) ? 'hl-target' : '';
+                primalHtml += `<td class="${hlZ}"><b>${data.Z.toTex()}</b></td>`;
+                data.zj_cj.forEach((val, idx) => {
+                    const isPrimalNB = !data.base.some(b => b.var.trim().toLowerCase() === data.varNames[idx].trim().toLowerCase());
+                    const hlZj = (step === 2 && isPrimalNB) ? 'hl-target' : '';
+                    primalHtml += `<td class="${hlZj}"><b>${val.toTex()}</b></td>`;
+                });
+                primalHtml += `</tr></tbody></table>`;
+                document.getElementById('primal-table-container').innerHTML = primalHtml;
+
+                // Render Dual Table
+                let dualHtml = `<table class="simplex-table"><thead><tr>`;
+                dualHtml += `<th>$c_k$</th><th>$y_k$</th><th>$B$</th>`;
+                dual.dualVarNames.forEach(dv => {
+                    dualHtml += `<th>${formatVarMath(dv)}</th>`;
+                });
+                dualHtml += `</tr></thead><tbody>`;
+
+                dual.dualBase.forEach((dbRow, rIdx) => {
+                    dualHtml += `<tr>`;
+                    const ckVal = (step >= 2) ? dbRow.ck.toTex() : '---';
+                    const hlCk = (step === 2) ? 'hl-target' : '';
+                    dualHtml += `<td class="${hlCk}">${ckVal}</td>`;
+
+                    const ykVal = (step >= 2) ? formatVarMath(dbRow.dualVar) : '---';
+                    const hlYk = (step === 2) ? 'hl-target' : '';
+                    dualHtml += `<td class="cell-base ${hlYk}">${ykVal}</td>`;
+
+                    const bVal = (step >= 2) ? dbRow.B.toTex() : '---';
+                    const hlB = (step === 2) ? 'hl-target' : '';
+                    dualHtml += `<td class="cell-b ${hlB}">${bVal}</td>`;
+
+                    dual.matrixRows[rIdx].forEach((cell, cIdx) => {
+                        const targetDvName = dual.dualVarNames[cIdx];
+                        const isIdentityCol = dual.dualBase.some(d => d.dualVar === targetDvName);
+                        let cellVal = '·';
+                        let cellClass = '';
+
+                        if (isIdentityCol) {
+                            if (step >= 3) {
+                                cellVal = cell.toTex();
+                                cellClass = (step === 3) ? 'hl-identity' : '';
+                            }
+                        } else {
+                            if (step >= 4) {
+                                cellVal = cell.toTex();
+                                cellClass = (step === 4) ? 'hl-target' : '';
+                            }
+                        }
+                        dualHtml += `<td class="${cellClass}">${cellVal}</td>`;
+                    });
+                    dualHtml += `</tr>`;
+                });
+
+                // Dual zj - cj row
+                dualHtml += `<tr class="zj-row">`;
+                dualHtml += `<td></td><td>$z_j - c_j$</td>`;
+                const wVal = (step >= 1) ? dual.W.toTex() : '---';
+                const hlW = (step === 1) ? 'hl-target' : '';
+                dualHtml += `<td class="${hlW}"><b>${wVal}</b></td>`;
+
+                dual.zj_cj.forEach((val, idx) => {
+                    const targetDvName = dual.dualVarNames[idx];
+                    const isBase = dual.dualBase.some(d => d.dualVar === targetDvName);
+                    let cellVal = '·';
+                    let cellClass = '';
+
+                    if (isBase) {
+                        if (step >= 3) {
+                            cellVal = '0';
+                            cellClass = (step === 3) ? 'hl-identity' : '';
+                        }
+                    } else {
+                        if (step >= 5) {
+                            cellVal = val.toTex();
+                            cellClass = (step === 5) ? 'hl-target' : '';
+                        }
+                    }
+                    dualHtml += `<td class="${cellClass}"><b>${cellVal}</b></td>`;
+                });
+
+                dualHtml += `</tr></tbody></table>`;
+                document.getElementById('dual-table-container').innerHTML = dualHtml;
+
+                // Step 6 Verdict in Tab 2
+                const step6Box = document.getElementById('step6-verdict-container');
+                if (step6Box) {
+                    if (step === 6) {
+                        step6Box.style.display = 'block';
+                        step6Box.innerHTML = `
+                            <div class="verdict-card" style="border-left: 4px solid var(--accent-dual);">
+                                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                                    <span class="verdict-badge optimal">⚖️ Correspondencia de Dualidad Fuerte</span>
+                                    <span style="font-family: var(--font-mono); font-weight: 700; color: var(--accent-dual);">Z* = ${data.Z ? data.Z.toTex() : '0'} = W*</span>
+                                </div>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-top: 8px;">
+                                    <div style="background: rgba(11, 15, 25, 0.5); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                                        <b style="color: var(--primary);">Problema Directo (Primal):</b><br>
+                                        • Veredicto: <b>${data.title || 'Solución Óptima'}</b><br>
+                                        • Funcional Óptimo: <b>Z = ${data.Z ? data.Z.toTex() : '0'}</b><br>
+                                        • Solución Factible en vértice extremo.
+                                    </div>
+                                    <div style="background: rgba(11, 15, 25, 0.5); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                                        <b style="color: var(--accent-dual);">Problema Dual:</b><br>
+                                        • Veredicto: <b>Solución Óptima Factible</b><br>
+                                        • Funcional Óptimo: <b>W = ${dual.W ? dual.W.toTex() : '0'}</b><br>
+                                        • Condición de optimalidad verificada (${(dual.dualSense === 'MIN' || data.sense === 'MAX') ? '$z_j - c_j \\le 0$' : '$z_j - c_j \\ge 0$'}).
+                                    </div>
+                                </div>
+                                <p style="margin-top: 8px; font-size: 0.88rem; color: var(--text-muted);">
+                                    <b>Cumplimiento del Teorema de Dualidad Fuerte:</b> Como el Primal es finito y factible con $Z^* = ${data.Z ? data.Z.toTex() : '0'}$, el Dual converge al mismo valor óptimo ($W^* = ${dual.W ? dual.W.toTex() : '0'}$).
+                                </p>
+                            </div>`;
+                    } else {
+                        step6Box.style.display = 'none';
+                    }
+                }
+
+                renderLatex(document.getElementById('view-stepper'));
+            } catch (err) {
+                console.error("Error in renderStepper:", err);
+            }
+        }
+
+        function changeStep(delta) {
+            currentStep = Math.max(0, Math.min(totalSteps, currentStep + delta));
+            renderStepper();
+        }
+
+        function resetStepper() {
+            currentStep = 0;
+            renderStepper();
+        }
+
+        function loadPreset(presetKey) {
+            if (!PRESETS[presetKey]) return;
+            currentData = PRESETS[presetKey];
+            currentStep = 0;
+
+            document.querySelectorAll('.btn-preset').forEach(b => b.classList.remove('active'));
+            const activeBtn = document.querySelector(`.btn-preset[data-preset="${presetKey}"]`);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            const verifierSel = document.getElementById('verifier-preset-select');
+            if (verifierSel && verifierSel.value !== presetKey) {
+                verifierSel.value = presetKey;
+            }
+
+            if (currentData.eqCoeffs) {
+                loadPresetEquations(presetKey);
+            }
+            renderStepper();
+            renderVerifier();
+        }
+
+        // Helper to format initial primal equations in LaTeX
+        function formatPrimalEquationsHtml(data) {
+            if (!data) return '<p style="color: var(--text-muted);">No hay ecuaciones cargadas.</p>';
+
+            const sense = (data.sense === 'MIN') ? '\\text{Min }' : '\\text{Max }';
+            let zFormula = `$$\\mathbf{${sense} Z = `;
+
+            let nDec = 0;
+            if (data.eqCoeffs && data.eqCoeffs.length > 0 && data.eqCoeffs[0].coeffs) {
+                nDec = data.eqCoeffs[0].coeffs.length;
+            } else if (data.origCosts) {
+                nDec = data.origCosts.length;
+            }
+
+            const costTerms = [];
+            for (let j = 0; j < nDec; j++) {
+                const cVal = data.origCosts && data.origCosts[j] ? data.origCosts[j] : F(0);
+                if (j === 0) {
+                    costTerms.push(`${cVal.toTex()} x_{${j + 1}}`);
+                } else {
+                    if (cVal.lt(F(0))) {
+                        costTerms.push(`- ${cVal.neg().toTex()} x_{${j + 1}}`);
+                    } else {
+                        costTerms.push(`+ ${cVal.toTex()} x_{${j + 1}}`);
+                    }
+                }
+            }
+            zFormula += (costTerms.length > 0 ? costTerms.join(' ') : '0') + `}$$`;
+
+            let restrsHtml = `<div style="margin-top: 6px;"><b>Sujeto a las restricciones:</b><br>`;
+            if (data.eqCoeffs && data.eqCoeffs.length > 0) {
+                data.eqCoeffs.forEach((row, i) => {
+                    let rowTex = `$$R_{${i + 1}}: \\quad `;
+                    const rowTerms = [];
+                    row.coeffs.forEach((coef, j) => {
+                        if (j === 0) {
+                            rowTerms.push(`${coef.toTex()} x_{${j + 1}}`);
+                        } else {
+                            if (coef.lt(F(0))) {
+                                rowTerms.push(`- ${coef.neg().toTex()} x_{${j + 1}}`);
+                            } else {
+                                rowTerms.push(`+ ${coef.toTex()} x_{${j + 1}}`);
+                            }
+                        }
+                    });
+                    const comp = row.sign === '<=' ? '\\le' : (row.sign === '>=' ? '\\ge' : '=');
+                    rowTex += rowTerms.join(' ') + ` ${comp} ${row.rhs.toTex()}$$`;
+                    restrsHtml += rowTex;
+                });
+                restrsHtml += `$$x_j \\ge 0 \\quad (j = 1, \\dots, ${nDec})$$`;
+            } else if (data.origResources) {
+                data.origResources.forEach((res, i) => {
+                    restrsHtml += `$$R_{${i + 1}}: \\quad \\dots \\le ${res.toTex()}$$`;
+                });
+            }
+            restrsHtml += `</div>`;
+
+            return zFormula + restrsHtml;
+        }
+
+        // VERIFIER
+        function renderVerifier() {
+            try {
+                const data = currentData;
+                const dual = solveDual(data);
+
+                // Sync Preset Selector in Verifier
+                const verifierSel = document.getElementById('verifier-preset-select');
+                if (verifierSel && data.id && verifierSel.value !== data.id) {
+                    verifierSel.value = data.id;
+                }
+
+                // Render Initial Equations Box
+                const eqBox = document.getElementById('verifier-equations-box');
+                if (eqBox) {
+                    eqBox.innerHTML = formatPrimalEquationsHtml(data);
+                }
+
+                let primalHtml = `<table class="simplex-table"><thead><tr>`;
+                primalHtml += `<th>$c_k$</th><th>$x_k$</th><th>$B$</th>`;
+                data.varNames.forEach((v, i) => {
+                    const dv = data.dualVarNames[i] || ('y' + (i + 1));
+                    primalHtml += `<th>${formatVarMath(v)}<span class="col-dual-mapping">${formatVarMath(dv)}</span></th>`;
+                });
+                primalHtml += `</tr></thead><tbody>`;
+
+                data.base.forEach((bRow) => {
+                    primalHtml += `<tr>`;
+                    primalHtml += `<td>${bRow.ck.toTex()}</td>`;
+                    primalHtml += `<td class="cell-base">${formatVarMath(bRow.var)}</td>`;
+                    primalHtml += `<td class="cell-b">${bRow.B.toTex()}</td>`;
+                    bRow.row.forEach((cell) => {
+                        primalHtml += `<td>${cell.toTex()}</td>`;
+                    });
+                    primalHtml += `</tr>`;
+                });
+
+                primalHtml += `<tr class="zj-row">`;
+                primalHtml += `<td></td><td>$z_j - c_j$</td>`;
+                primalHtml += `<td><b>${data.Z.toTex()}</b></td>`;
+                data.zj_cj.forEach((val) => {
+                    primalHtml += `<td><b>${val.toTex()}</b></td>`;
+                });
+                primalHtml += `</tr></tbody></table>`;
+                document.getElementById('verifier-primal-container').innerHTML = primalHtml;
+
+                // Inputs
+                let dualHtml = `<table class="simplex-table"><thead><tr>`;
+                dualHtml += `<th>$c_k$</th><th>$y_k$</th><th>$B$</th>`;
+                dual.dualVarNames.forEach(dv => {
+                    dualHtml += `<th>${formatVarMath(dv)}</th>`;
+                });
+                dualHtml += `</tr></thead><tbody>`;
+
+                dual.dualBase.forEach((dbRow, rIdx) => {
+                    dualHtml += `<tr>`;
+                    dualHtml += `<td><input type="text" class="cell-input" id="v-ck-${rIdx}" placeholder="ck"></td>`;
+                    dualHtml += `<td><input type="text" class="cell-input" id="v-yk-${rIdx}" placeholder="yk"></td>`;
+                    dualHtml += `<td><input type="text" class="cell-input" id="v-b-${rIdx}" placeholder="B"></td>`;
+                    dual.matrixRows[rIdx].forEach((_, cIdx) => {
+                        dualHtml += `<td><input type="text" class="cell-input" id="v-m-${rIdx}-${cIdx}" placeholder="0"></td>`;
+                    });
+                    dualHtml += `</tr>`;
+                });
+
+                dualHtml += `<tr class="zj-row">`;
+                dualHtml += `<td></td><td>$z_j - c_j$</td>`;
+                dualHtml += `<td><input type="text" class="cell-input" id="v-w" placeholder="W"></td>`;
+                dual.zj_cj.forEach((_, cIdx) => {
+                    dualHtml += `<td><input type="text" class="cell-input" id="v-zj-${cIdx}" placeholder="0"></td>`;
+                });
+                dualHtml += `</tr></tbody></table>`;
+                document.getElementById('verifier-dual-container').innerHTML = dualHtml;
+
+                document.getElementById('verifier-results').style.display = 'none';
+                renderLatex(document.getElementById('view-verifier'));
+            } catch (err) {
+                console.error("Error in renderVerifier:", err);
+            }
+        }
+
+        function checkUserDual() {
+            const dual = solveDual(currentData);
+            let total = 0, correct = 0;
+            const errors = [];
+
+            const inputW = document.getElementById('v-w');
+            total++;
+            if (inputW && new Fraction(inputW.value).equals(dual.W)) {
+                inputW.className = 'cell-input correct';
+                correct++;
+            } else {
+                if (inputW) inputW.className = 'cell-input wrong';
+                errors.push(`Funcional W: Debería ser ${dual.W.toTex()}`);
+            }
+
+            dual.dualBase.forEach((db, rIdx) => {
+                const inCk = document.getElementById(`v-ck-${rIdx}`);
+                total++;
+                if (inCk && new Fraction(inCk.value).equals(db.ck)) {
+                    inCk.className = 'cell-input correct';
+                    correct++;
+                } else {
+                    if (inCk) inCk.className = 'cell-input wrong';
+                    errors.push(`Fila ${rIdx+1} ck: Debería ser ${db.ck.toTex()}`);
+                }
+
+                const inYk = document.getElementById(`v-yk-${rIdx}`);
+                total++;
+                const userYk = inYk ? inYk.value.replace(/[_{\}\$]/g, '').trim().toLowerCase() : '';
+                const targetYk = db.dualVar.replace(/[_{\}\$]/g, '').trim().toLowerCase();
+                if (userYk === targetYk && userYk !== '') {
+                    inYk.className = 'cell-input correct';
+                    correct++;
+                } else {
+                    if (inYk) inYk.className = 'cell-input wrong';
+                    errors.push(`Fila ${rIdx+1} variable básica: Debería ser ${db.dualVar}`);
+                }
+
+                const inB = document.getElementById(`v-b-${rIdx}`);
+                total++;
+                if (inB && new Fraction(inB.value).equals(db.B)) {
+                    inB.className = 'cell-input correct';
+                    correct++;
+                } else {
+                    if (inB) inB.className = 'cell-input wrong';
+                    errors.push(`Fila ${rIdx+1} B: Debería ser ${db.B.toTex()}`);
+                }
+
+                dual.matrixRows[rIdx].forEach((targetVal, cIdx) => {
+                    const inCell = document.getElementById(`v-m-${rIdx}-${cIdx}`);
+                    total++;
+                    if (inCell && new Fraction(inCell.value).equals(targetVal)) {
+                        inCell.className = 'cell-input correct';
+                        correct++;
+                    } else {
+                        if (inCell) inCell.className = 'cell-input wrong';
+                    }
+                });
+            });
+
+            dual.zj_cj.forEach((targetVal, cIdx) => {
+                const inZj = document.getElementById(`v-zj-${cIdx}`);
+                total++;
+                if (inZj && new Fraction(inZj.value).equals(targetVal)) {
+                    inZj.className = 'cell-input correct';
+                    correct++;
+                } else {
+                    if (inZj) inZj.className = 'cell-input wrong';
+                }
+            });
+
+            const resBox = document.getElementById('verifier-results');
+            const statusText = document.getElementById('verifier-status-text');
+            const details = document.getElementById('verifier-feedback-details');
+            resBox.style.display = 'flex';
+
+            if (correct === total) {
+                statusText.innerHTML = `<span style="color: var(--success);">🎉 ¡IMPECABLE! ${correct}/${total} Celdas Correctas</span>`;
+                details.innerText = "¡Completaste toda la tabla dual a la perfección cumpliendo con todas las reglas de transposición y signos!";
+            } else {
+                statusText.innerHTML = `<span style="color: var(--warning);">⚠️ Tienes ${total - correct} valores para corregir (${correct}/${total} correctos)</span>`;
+                details.innerText = errors.length > 0 ? errors.slice(0, 3).join(" • ") : "Revisá las celdas marcadas en rojo (atención al cambio de signo en la traspuesta o en la fila z_j - c_j).";
+            }
+        }
+
+        function autoFillUserDual() {
+            const dual = solveDual(currentData);
+            document.getElementById('v-w').value = dual.W.toTex();
+            dual.dualBase.forEach((db, rIdx) => {
+                document.getElementById(`v-ck-${rIdx}`).value = db.ck.toTex();
+                document.getElementById(`v-yk-${rIdx}`).value = db.dualVar;
+                document.getElementById(`v-b-${rIdx}`).value = db.B.toTex();
+                dual.matrixRows[rIdx].forEach((val, cIdx) => {
+                    document.getElementById(`v-m-${rIdx}-${cIdx}`).value = val.toTex();
+                });
+            });
+            dual.zj_cj.forEach((val, cIdx) => {
+                document.getElementById(`v-zj-${cIdx}`).value = val.toTex();
+            });
+            checkUserDual();
+        }
+
+        function clearUserDual() {
+            document.querySelectorAll('#verifier-dual-container input').forEach(inp => {
+                inp.value = '';
+                inp.className = 'cell-input';
+            });
+            document.getElementById('verifier-results').style.display = 'none';
+        }
+
+        // TABS
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            const targetBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+            if (targetBtn) targetBtn.classList.add('active');
+
+            document.querySelectorAll('.tab-view').forEach(v => v.style.display = 'none');
+            const targetView = document.getElementById(`view-${tabId}`);
+            if (targetView) targetView.style.display = 'block';
+
+            if (tabId === 'stepper') renderStepper();
+            if (tabId === 'verifier') renderVerifier();
+            if (tabId === 'equations') {
+                renderEquationForm();
+                loadPresetEquations('slides_metal');
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderEquationForm();
+            loadPresetEquations('slides_metal');
+            renderStepper();
+            renderVerifier();
+        });
+    </script>
+</body>
+</html>
