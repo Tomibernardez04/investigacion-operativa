@@ -81,22 +81,27 @@
         .header-brand {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             flex-shrink: 0;
         }
 
         .header-icon {
-            font-size: 24px;
-            background: linear-gradient(135deg, var(--primary), var(--accent-dual));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            flex-shrink: 0;
         }
 
         .header-title h1 {
-            font-size: 1.15rem;
+            font-size: 1.42rem;
             font-weight: 800;
             letter-spacing: -0.02em;
             margin: 0;
+            line-height: 1;
+            display: flex;
+            align-items: center;
             white-space: nowrap;
         }
 
@@ -763,11 +768,20 @@
 
     <header>
         <div class="header-brand">
-            <div class="header-icon">⇄</div>
+     <div class="header-icon" title="Simplex ⇄ Dual">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                    <defs>
+                        <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#38bdf8" />
+                            <stop offset="100%" stop-color="#f97316" />
+                        </linearGradient>
+                    </defs>
+                    <path d="M4 8h13M13 4.5l4.5 3.5-4.5 3.5" stroke="url(#headerGrad)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M20 16H7M11 12.5L6.5 16l4.5 3.5" stroke="url(#headerGrad)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
             <div class="header-title">
-                <h1>Simplex ⇄ Dual: Formulación & Tablas Óptimas</h1>
-                <p>Investigación Operativa • Ecuaciones Iniciales, Simplex Automático y Pasaje de Tablas (Cátedra
-                    Carlevari)</p>
+                <h1>Investigación Operativa</h1>
             </div>
         </div>
 
@@ -821,9 +835,7 @@
                 <div>
                     <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--primary);">1. Ecuaciones Iniciales del
                         Problema Directo</h2>
-                    <p style="color: var(--text-muted); font-size: 0.88rem;">Ingresá la Función Objetivo y las
-                        restricciones originales. De aquí se obtienen los costos $c_j$ y los recursos $b_i$ reales para
-                        completar con 100% de exactitud la columna $c_k$ del Dual.</p>
+                    <p style="color: var(--text-muted); font-size: 0.88rem;">Ingresá la Función Objetivo y las restricciones originales. De aquí se obtienen los costos c<sub>j</sub> y los recursos b<sub>i</sub> reales para completar con 100% de exactitud la columna c<sub>k</sub> del Dual.</p>
                 </div>
 
                 <div class="form-row">
@@ -835,12 +847,12 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Variables de Decisión ($n$):</label>
+                        <label>Variables de Decisión (n):</label>
                         <input type="number" id="eq-n-vars" class="form-control" value="2" min="1" max="6"
                             onchange="renderEquationForm()">
                     </div>
                     <div class="form-group">
-                        <label>Restricciones ($m$):</label>
+                        <label>Restricciones (m):</label>
                         <input type="number" id="eq-n-rows" class="form-control" value="3" min="1" max="6"
                             onchange="renderEquationForm()">
                     </div>
