@@ -500,6 +500,47 @@
             font-family: var(--font-mono);
         }
 
+        .deg-zero-simple {
+            color: #f87171;
+            font-weight: 800;
+            font-family: var(--font-mono);
+        }
+
+        /* Highlighting for Degenerate Solution B = 0 */
+        .hl-degenerate {
+            background: rgba(239, 68, 68, 0.15) !important;
+            border: 1px solid rgba(239, 68, 68, 0.5) !important;
+        }
+
+        .deg-zero-pill {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1px;
+        }
+
+        .deg-zero-num {
+            font-size: 1.15rem;
+            font-weight: 900;
+            color: #f87171;
+            text-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+            font-family: var(--font-mono);
+        }
+
+        .deg-zero-label {
+            font-size: 0.62rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            background: #7f1d1d;
+            color: #fee2e2;
+            padding: 1px 5px;
+            border-radius: 3px;
+            border: 1px solid #ef4444;
+            white-space: nowrap;
+        }
+
         .verdict-card {
             background: rgba(15, 23, 42, 0.7);
             border: 1px solid var(--border);
@@ -3497,7 +3538,16 @@
                                         html += `<tr class="${rowClass}">`;
                                         html += `<td>${bRow.ck.toTex()}</td>`;
                                         html += `<td class="cell-base">${formatVarMath(bRow.var)}</td>`;
-                                        html += `<td class="cell-b">${bRow.B.toTex()}</td>`;
+                                        const isFinalTable = cur.isOptimal || (currentSimplexIter === (currentSimplexHistory ? currentSimplexHistory.iterations.length - 1 : 0));
+                                        const isDegB = isFinalTable && bRow.B && bRow.B.isZero && bRow.B.isZero();
+                                        const bCellClass = isDegB ? 'cell-b hl-degenerate' : 'cell-b';
+                                        const bContent = isDegB
+                                            ? `<div class="deg-zero-pill" title="Solución básica degenerada: variable básica con B = 0">
+                                                <span class="deg-zero-num">0</span>
+                                                <span class="deg-zero-label">Degenerada</span>
+                                               </div>`
+                                            : bRow.B.toTex();
+                                        html += `<td class="${bCellClass}">${bContent}</td>`;
 
                                         bRow.row.forEach((cell, cIdx) => {
                                             let cellClass = '';
@@ -3919,7 +3969,15 @@
                                             html += `<tr class="${rowClass}">`;
                                             html += `<td>${bRow.ck.toTex()}</td>`;
                                             html += `<td class="cell-base" style="color: var(--accent-dual);">${formatVarMath(bRow.var)}</td>`;
-                                            html += `<td class="cell-b">${bRow.B.toTex()}</td>`;
+                                            const isDegDualSimplexB = cur.isOptimal && bRow.B && bRow.B.isZero && bRow.B.isZero();
+                                            const bCellClass = isDegDualSimplexB ? 'cell-b hl-degenerate' : 'cell-b';
+                                            const bContent = isDegDualSimplexB
+                                                ? `<div class="deg-zero-pill" title="Solución dual degenerada: variable básica con B = 0">
+                                                    <span class="deg-zero-num">0</span>
+                                                    <span class="deg-zero-label">Degenerada</span>
+                                                   </div>`
+                                                : bRow.B.toTex();
+                                            html += `<td class="${bCellClass}">${bContent}</td>`;
 
                                             bRow.row.forEach((cell, cIdx) => {
                                                 let cellClass = '';
@@ -4240,8 +4298,14 @@
                                         primalHtml += `<tr>`;
                                         primalHtml += `<td>${bRow.ck.toTex()}</td>`;
                                         primalHtml += `<td class="cell-base">${formatVarMath(bRow.var)}</td>`;
-                                        const hlB = (step === 5) ? 'hl-target' : '';
-                                        primalHtml += `<td class="cell-b ${hlB}">${bRow.B.toTex()}</td>`;
+                                        const isDegPrimalB = bRow.B && bRow.B.isZero && bRow.B.isZero();
+                                        let hlB = (step === 5) ? 'hl-target' : '';
+                                        let bContent = bRow.B.toTex();
+                                        if (isDegPrimalB) {
+                                            hlB = (hlB ? hlB + ' ' : '') + 'hl-degenerate';
+                                            bContent = `<b class="deg-zero-simple" title="Solución óptima degenerada: variable básica con B = 0">0</b>`;
+                                        }
+                                        primalHtml += `<td class="cell-b ${hlB}">${bContent}</td>`;
                                         bRow.row.forEach((cell, cIdx) => {
                                             const isPrimalNB = !data.base.some(b => b.var.trim().toLowerCase() === data.varNames[cIdx].trim().toLowerCase());
                                             const hlCell = (step === 4 && isPrimalNB) ? 'hl-target' : '';
@@ -4283,8 +4347,20 @@
                                         const hlYk = (step === 2) ? 'hl-target' : '';
                                         dualHtml += `<td class="cell-base ${hlYk}">${ykVal}</td>`;
 
-                                        const bVal = (step >= 2) ? dbRow.B.toTex() : '---';
-                                        const hlB = (step === 2) ? 'hl-target' : '';
+                                        let bVal = '---';
+                                        let hlB = (step === 2) ? 'hl-target' : '';
+                                        if (step >= 2) {
+                                            const isDegDualB = dbRow.B && dbRow.B.isZero && dbRow.B.isZero();
+                                            if (isDegDualB) {
+                                                hlB = (hlB ? hlB + ' ' : '') + 'hl-degenerate';
+                                                bVal = `<div class="deg-zero-pill" title="Solución dual degenerada: variable básica dual con B = 0">
+                                                    <span class="deg-zero-num">0</span>
+                                                    <span class="deg-zero-label">Degenerada</span>
+                                                </div>`;
+                                            } else {
+                                                bVal = dbRow.B.toTex();
+                                            }
+                                        }
                                         dualHtml += `<td class="cell-b ${hlB}">${bVal}</td>`;
 
                                         dual.matrixRows[rIdx].forEach((cell, cIdx) => {
@@ -4577,8 +4653,14 @@
                                             primalHtml += `<tr>`;
                                             primalHtml += `<td>${bRow.ck.toTex()}</td>`;
                                             primalHtml += `<td class="cell-base">${formatVarMath(bRow.var)}</td>`;
-                                            const hlB = (step === 5) ? 'hl-target' : '';
-                                            primalHtml += `<td class="cell-b ${hlB}">${bRow.B.toTex()}</td>`;
+                                            const isDegPrimalB = bRow.B && bRow.B.isZero && bRow.B.isZero();
+                                            let hlB = (step === 5) ? 'hl-target' : '';
+                                            let bContent = bRow.B.toTex();
+                                            if (isDegPrimalB) {
+                                                hlB = (hlB ? hlB + ' ' : '') + 'hl-degenerate';
+                                                bContent = `<b class="deg-zero-simple" title="Solución óptima degenerada: variable básica con B = 0">0</b>`;
+                                            }
+                                            primalHtml += `<td class="cell-b ${hlB}">${bContent}</td>`;
                                             bRow.row.forEach((cell, cIdx) => {
                                                 const isPrimalNB = !data.base.some(b => b.var.trim().toLowerCase() === data.varNames[cIdx].trim().toLowerCase());
                                                 const hlCell = (step === 4 && isPrimalNB) ? 'hl-target' : '';
@@ -4620,8 +4702,20 @@
                                             const hlYk = (step === 2) ? 'hl-target' : '';
                                             dualHtml += `<td class="cell-base ${hlYk}">${ykVal}</td>`;
 
-                                            const bVal = (step >= 2) ? dbRow.B.toTex() : '---';
-                                            const hlB = (step === 2) ? 'hl-target' : '';
+                                            let bVal = '---';
+                                            let hlB = (step === 2) ? 'hl-target' : '';
+                                            if (step >= 2) {
+                                                const isDegDualB = dbRow.B && dbRow.B.isZero && dbRow.B.isZero();
+                                                if (isDegDualB) {
+                                                    hlB = (hlB ? hlB + ' ' : '') + 'hl-degenerate';
+                                                    bVal = `<div class="deg-zero-pill" title="Solución dual degenerada: variable básica dual con B = 0">
+                                                        <span class="deg-zero-num">0</span>
+                                                        <span class="deg-zero-label">Degenerada</span>
+                                                    </div>`;
+                                                } else {
+                                                    bVal = dbRow.B.toTex();
+                                                }
+                                            }
                                             dualHtml += `<td class="cell-b ${hlB}">${bVal}</td>`;
 
                                             dual.matrixRows[rIdx].forEach((cell, cIdx) => {
@@ -4911,7 +5005,12 @@
                                             primalHtml += `<tr>`;
                                             primalHtml += `<td>${bRow.ck.toTex()}</td>`;
                                             primalHtml += `<td class="cell-base">${formatVarMath(bRow.var)}</td>`;
-                                            primalHtml += `<td class="cell-b">${bRow.B.toTex()}</td>`;
+                                            const isDegPrimalB = bRow.B && bRow.B.isZero && bRow.B.isZero();
+                                            const bCellClass = isDegPrimalB ? 'cell-b hl-degenerate' : 'cell-b';
+                                            const bContent = isDegPrimalB
+                                                ? `<b class="deg-zero-simple" title="Solución óptima degenerada: variable básica con B = 0">0</b>`
+                                                : bRow.B.toTex();
+                                            primalHtml += `<td class="${bCellClass}">${bContent}</td>`;
                                             bRow.row.forEach((cell) => {
                                                 primalHtml += `<td>${cell.toTex()}</td>`;
                                             });
