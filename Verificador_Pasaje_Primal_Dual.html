@@ -494,6 +494,12 @@
             white-space: nowrap;
         }
 
+        .alt-zero-simple {
+            color: #fbbf24;
+            font-weight: 800;
+            font-family: var(--font-mono);
+        }
+
         .verdict-card {
             background: rgba(15, 23, 42, 0.7);
             border: 1px solid var(--border);
@@ -1023,10 +1029,10 @@
                                 Óptima Primal y Mapeo</span>
                         </div>
                         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                            <button class="btn-step" id="btn-emb-dual-prev" onclick="changeEmbeddedDualStep(-1)"
-                                disabled>◀ Anterior</button>
-                            <button class="btn-step" id="btn-emb-dual-next"
-                                onclick="changeEmbeddedDualStep(1)">Siguiente ▶</button>
+                            <button class="btn-step" id="btn-emb-dual-first" onclick="goToEmbeddedDualStep(0)">⏮ Inicio</button>
+                            <button class="btn-step" id="btn-emb-dual-prev" onclick="changeEmbeddedDualStep(-1)" disabled>◀ Anterior</button>
+                            <button class="btn-step" id="btn-emb-dual-next" onclick="changeEmbeddedDualStep(1)">Siguiente ▶</button>
+                            <button class="btn-step" id="btn-emb-dual-last" onclick="goToEmbeddedDualStep(totalSteps)">⏭ Fin</button>
                             <button class="btn-step" onclick="resetEmbeddedDualStep()">↺ Reiniciar</button>
                             <button class="btn-step" onclick="hideAllActionPanels()"
                                 style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">✕
@@ -1064,6 +1070,14 @@
 
                     <!-- Step 6 Verdict Card -->
                     <div id="embedded-step6-verdict-container" style="display: none; margin-top: 16px;"></div>
+
+                    <!-- Bottom Stepper Controls for Embedded Dual -->
+                    <div style="display: flex; justify-content: flex-end; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06);">
+                        <button class="btn-step" id="btn-emb-dual-first-bottom" onclick="goToEmbeddedDualStep(0)">⏮ Inicio</button>
+                        <button class="btn-step" id="btn-emb-dual-prev-bottom" onclick="changeEmbeddedDualStep(-1)">◀ Anterior</button>
+                        <button class="btn-step" id="btn-emb-dual-next-bottom" onclick="changeEmbeddedDualStep(1)">Siguiente ▶</button>
+                        <button class="btn-step" id="btn-emb-dual-last-bottom" onclick="goToEmbeddedDualStep(totalSteps)">⏭ Fin</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1073,12 +1087,14 @@
             <div class="card-panel">
                 <div class="stepper-header">
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <span class="step-badge" id="step-badge">Paso 0 de 5</span>
+                        <span class="step-badge" id="step-badge">Paso 0 de 6</span>
                         <span class="step-title" id="step-title">Tabla Óptima Primal y Mapeo de Variables</span>
                     </div>
-                    <div style="display: flex; gap: 8px; align-items: center;">
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <button class="btn-step" id="btn-first" onclick="goToStep(0)">⏮ Inicio</button>
                         <button class="btn-step" id="btn-prev" onclick="changeStep(-1)" disabled>◀ Anterior</button>
                         <button class="btn-step" id="btn-next" onclick="changeStep(1)">Siguiente ▶</button>
+                        <button class="btn-step" id="btn-last" onclick="goToStep(totalSteps)">⏭ Fin</button>
                         <button class="btn-step" onclick="resetStepper()">↺ Reiniciar</button>
                     </div>
                 </div>
@@ -1116,6 +1132,14 @@
 
             <!-- Step 6 Verdict Card for Tab 2 -->
             <div id="step6-verdict-container" style="display: none; margin-top: 16px;"></div>
+
+            <!-- Bottom Stepper Controls for Tab 2 -->
+            <div style="display: flex; justify-content: flex-end; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06);">
+                <button class="btn-step" id="btn-first-bottom" onclick="goToStep(0)">⏮ Inicio</button>
+                <button class="btn-step" id="btn-prev-bottom" onclick="changeStep(-1)">◀ Anterior</button>
+                <button class="btn-step" id="btn-next-bottom" onclick="changeStep(1)">Siguiente ▶</button>
+                <button class="btn-step" id="btn-last-bottom" onclick="goToStep(totalSteps)">⏭ Fin</button>
+            </div>
         </div>
 
         <!-- VIEW 3: PRACTICE & VERIFY -->
@@ -1472,7 +1496,7 @@
                 dualSense: 'MIN',
                 Z: F(10),
                 varNames: ['x1', 'x2', 'x3', 'x4', 'x5'],
-                dualVarNames: ['y4', 'y5', 'y6', 'y1', 'y2', 'y3'],
+                dualVarNames: ['y4', 'y5', 'y1', 'y2', 'y3'],
                 origCosts: [F(3), F(2), F(0), F(0), F(0)],
                 origResources: [F(4), F(6), F(2)],
                 eqCoeffs: [
@@ -2308,6 +2332,24 @@
 
         // SOLVE DUAL TABLE
         function solveDual(data) {
+            if (!data) return null;
+            if (!data.base && data.eqCoeffs) {
+                try {
+                    const nVars = data.eqCoeffs[0].coeffs.length;
+                    const solved = solveSimplexWithHistory(data.sense, (data.origCosts || []).slice(0, nVars), data.eqCoeffs.map(r => ({ coeffs: r.coeffs, sign: r.sign, rhs: r.rhs })));
+                    data = Object.assign({}, data, solved);
+                } catch (e) { }
+            }
+            if (!data.base) {
+                return {
+                    dualVarNames: data.dualVarNames || [],
+                    dualBase: [],
+                    dualNB: [],
+                    matrixRows: [],
+                    zj_cj: [],
+                    W: data.Z || F(0)
+                };
+            }
             const isMaxToMin = (data.sense === 'MAX');
             const primalNB = [];
             data.varNames.forEach((v, idx) => {
@@ -4138,6 +4180,12 @@
                                     renderEmbeddedDualStep();
                                 }
 
+                                function goToEmbeddedDualStep(target) {
+                                    if (target === -1) target = totalSteps;
+                                    currentEmbeddedDualStep = Math.max(0, Math.min(totalSteps, target));
+                                    renderEmbeddedDualStep();
+                                }
+
                                 function resetEmbeddedDualStep() {
                                     currentEmbeddedDualStep = 0;
                                     renderEmbeddedDualStep();
@@ -4161,10 +4209,17 @@
                                         'Correlación y Teorema Fundamental de la Dualidad'
                                     ];
                                     document.getElementById('embedded-dual-step-title').innerText = stepTitles[step] || '';
-                                    document.getElementById('btn-emb-dual-prev').disabled = (step === 0);
-                                    document.getElementById('btn-emb-dual-next').disabled = (step === totalSteps);
+                                    const atFirstEmb = (step === 0);
+                                    const atLastEmb = (step === totalSteps);
+                                    ['btn-emb-dual-prev', 'btn-emb-dual-first', 'btn-emb-dual-prev-bottom', 'btn-emb-dual-first-bottom'].forEach(id => {
+                                        const el = document.getElementById(id);
+                                        if (el) el.disabled = atFirstEmb;
+                                    });
+                                    ['btn-emb-dual-next', 'btn-emb-dual-last', 'btn-emb-dual-next-bottom', 'btn-emb-dual-last-bottom'].forEach(id => {
+                                        const el = document.getElementById(id);
+                                        if (el) el.disabled = atLastEmb;
+                                    });
 
-                                    // Explanation
                                     document.getElementById('embedded-dual-explanation').innerHTML = getStepExplanation(step, data, dual);
 
                                     // Functionals
@@ -4202,7 +4257,10 @@
                                     data.zj_cj.forEach((val, idx) => {
                                         const isPrimalNB = !data.base.some(b => b.var.trim().toLowerCase() === data.varNames[idx].trim().toLowerCase());
                                         const hlZj = (step === 2 && isPrimalNB) ? 'hl-target' : '';
-                                        primalHtml += `<td class="${hlZj}"><b>${val.toTex()}</b></td>`;
+                                        const cellContent = (isPrimalNB && val.isZero())
+                                            ? `<span class="alt-zero-simple" title="Solución alternativa: variable no básica con costo reducido 0*">0*</span>`
+                                            : val.toTex();
+                                        primalHtml += `<td class="${hlZj}"><b>${cellContent}</b></td>`;
                                     });
                                     primalHtml += `</tr></tbody></table>`;
                                     document.getElementById('emb-primal-table-container').innerHTML = primalHtml;
@@ -4270,8 +4328,16 @@
                                             }
                                         } else {
                                             if (step >= 5) {
-                                                cellVal = val.toTex();
-                                                cellClass = (step === 5) ? 'hl-target' : '';
+                                                if (val.isZero()) {
+                                                    cellVal = `<div class="alt-zero-pill" title="Solución alternativa: indicador zj - cj = 0* en variable no básica">
+                                <span class="alt-zero-num">0*</span>
+                                <span class="alt-zero-label">Sol. Alternativa</span>
+                            </div>`;
+                                                    cellClass = 'hl-alt-zero';
+                                                } else {
+                                                    cellVal = val.toTex();
+                                                    cellClass = (step === 5) ? 'hl-target' : '';
+                                                }
                                             }
                                         }
                                         dualHtml += `<td class="${cellClass}"><b>${cellVal}</b></td>`;
@@ -4287,25 +4353,78 @@
                                         const primalZ = data.Z ? data.Z.toTex() : '0';
                                         const dualW = dual.W ? dual.W.toTex() : '0';
 
+                                        // Primal degeneracy check
+                                        const degPrimalVars = (data.base || []).filter(b => b.B && b.B.isZero && b.B.isZero()).map(b => formatVarMath(b.var));
+                                        const isPrimalDegenerate = degPrimalVars.length > 0;
+
+                                        // Primal alternative check
+                                        const altPrimalVars = [];
+                                        (data.varNames || []).forEach((v, idx) => {
+                                            const inBase = (data.base || []).some(b => b.var && b.var.trim().toLowerCase() === v.trim().toLowerCase());
+                                            if (!inBase && data.zj_cj && data.zj_cj[idx] && data.zj_cj[idx].isZero && data.zj_cj[idx].isZero()) {
+                                                altPrimalVars.push(formatVarMath(v));
+                                            }
+                                        });
+                                        const isPrimalAlternative = (altPrimalVars.length > 0) || (data.verdict && data.verdict.includes('ALT'));
+
+                                        // Dual alternative check (non-basic dual variable with zj - cj = 0)
+                                        const altDualVars = (dual.dualNB || []).filter(dnb => dnb.primalBVal && dnb.primalBVal.isZero && dnb.primalBVal.isZero()).map(dnb => formatVarMath(dnb.dualVar));
+                                        const isDualAlternative = (altDualVars.length > 0) || isPrimalDegenerate;
+
+                                        // Dual degeneracy check (basic dual variable with B = 0)
+                                        const degDualVars = (dual.dualBase || []).filter(db => db.B && db.B.isZero && db.B.isZero()).map(db => formatVarMath(db.dualVar));
+                                        const isDualDegenerate = (degDualVars.length > 0) || isPrimalAlternative;
+
+                                        let primalStatusText = primalVerdict;
+                                        let dualStatusText = 'Solución Óptima Finita Confirmada';
+                                        let dualBadgeClass = 'optimal';
+                                        let dualBadgeText = '⚖️ Correlación del Teorema Fundamental de la Dualidad (Diapo 58)';
+                                        let explanationFooter = '';
+
+                                        if (isPrimalDegenerate) {
+                                            primalStatusText = `Solución Óptima Degenerada (${degPrimalVars.join(', ')} con $B = 0$)`;
+                                            dualStatusText = `Soluciones Alternativas (Múltiples) Confirmada (${altDualVars.join(', ')} con $0^*$)`;
+                                            dualBadgeClass = 'alternative';
+                                            dualBadgeText = '🔄 Teorema Fundamental: Primal Degenerado ➔ Dual con Soluciones Alternativas';
+                                            explanationFooter = `<b>⚖️ Teorema Fundamental de la Dualidad (Diapo 58 - Correspondencia Degenerada ➔ Alternativa):</b><br>` +
+                                                `• <b>Problema Directo Degenerado:</b> La variable básica <b>${degPrimalVars.join(', ')}</b> tiene recurso $B = 0$ (vértice redundante o punto triple).<br>` +
+                                                `• <b>Problema Dual con Soluciones Alternativas:</b> Por la regla de pasaje de signos ($z_j - c_j = \\mp B$), la variable dual no básica <b>${altDualVars.join(', ')}</b> presenta costo reducido <b>$0^*$</b> ($z_j - c_j = 0$). ` +
+                                                `Esto confirma formalmente la existencia de <b>infinitas soluciones óptimas alternativas en el Dual</b> con idéntico funcional $W^* = ${dualW}.`;
+                                        } else if (isPrimalAlternative) {
+                                            primalStatusText = `Soluciones Múltiples (Alternativas) (${altPrimalVars.join(', ')} con $0^*$)`;
+                                            dualStatusText = `Solución Óptima Degenerada Confirmada (${degDualVars.join(', ')} con $B = 0$)`;
+                                            dualBadgeClass = 'warning';
+                                            dualBadgeText = '⚡ Teorema Fundamental: Primal Alternativo ➔ Dual Degenerado';
+                                            explanationFooter = `<b>⚖️ Teorema Fundamental de la Dualidad (Diapo 58 - Correspondencia Alternativa ➔ Degenerada):</b><br>` +
+                                                `• <b>Problema Directo con Soluciones Alternativas:</b> La variable no básica <b>${altPrimalVars.join(', ')}</b> tiene costo reducido $0^*$ ($z_j - c_j = 0$).<br>` +
+                                                `• <b>Problema Dual Degenerado:</b> Por la regla de pasaje ($B_{\\text{dual}} = \\pm(z_j - c_j)$), la variable básica del dual <b>${degDualVars.join(', ')}</b> toma <b>$B = 0$</b> en la base, generando una solución degenerada en el Dual.`;
+                                        } else {
+                                            primalStatusText = 'Solución Óptima Única Factible';
+                                            dualStatusText = 'Solución Óptima Única Factible Confirmada';
+                                            dualBadgeClass = 'optimal';
+                                            dualBadgeText = '⚖️ Correlación del Teorema Fundamental de la Dualidad (Diapo 58)';
+                                            explanationFooter = `<b>Cumplimiento del Teorema de Dualidad Fuerte:</b> Como el Primal es finito y factible con $Z^* = ${primalZ}$, el Dual alcanza idéntico óptimo finito $W^* = ${dualW}. Los multiplicadores sombra en la fila $z_j - c_j$ del Dual reflejan con exactitud las variables directas $B$.`;
+                                        }
+
                                         let html = `<div class="verdict-card">
                     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-                        <span class="verdict-badge optimal">⚖️ Correlación del Teorema Fundamental de la Dualidad (Diapo 58)</span>
+                        <span class="verdict-badge ${dualBadgeClass}">${dualBadgeText}</span>
                         <span style="font-family: var(--font-mono); font-weight: 700; color: var(--accent-dual);">Z* = W* = ${primalZ}</span>
                     </div>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-top: 8px;">
                         <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; border: 1px solid rgba(59,130,246,0.3);">
                             <b style="color: var(--primary);">Problema Directo (Primal):</b><br>
-                            • Estado: <b>${primalVerdict}</b><br>
+                            • Estado: <b>${primalStatusText}</b><br>
                             • Valor Óptimo: <b>Z* = ${primalZ}</b>
                         </div>
                         <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; border: 1px solid rgba(249,115,22,0.3);">
                             <b style="color: var(--accent-dual);">Problema Dual:</b><br>
-                            • Estado: <b>Solución Óptima Finita Confirmada</b><br>
+                            • Estado: <b>${dualStatusText}</b><br>
                             • Valor Óptimo: <b>W* = ${dualW}</b>
                         </div>
                     </div>
-                    <div style="background: rgba(255,255,255,0.03); padding: 10px 14px; border-radius: 6px; font-size: 0.9rem; line-height: 1.5;">
-                        <b>Cumplimiento del Teorema de Dualidad Fuerte:</b> Como el Primal es finito y factible con $Z^* = ${primalZ}$, el Dual alcanza idéntico óptimo finito $W^* = ${dualW}$. Los multiplicadores sombra en la fila $z_j - c_j$ del Dual reflejan con exactitud las variables directas $B$.
+                    <div style="background: rgba(255,255,255,0.03); padding: 10px 14px; border-radius: 6px; font-size: 0.9rem; line-height: 1.5; margin-top: 10px;">
+                        ${explanationFooter}
                     </div>
                 </div>`;
                                         step6Box.innerHTML = html;
@@ -4360,12 +4479,45 @@
                                                 : 'con <b>signo positivo</b> (porque el Dual es de Maximización). Todos quedan $\\ge 0$';
                                             return `Los valores del vector $B$ del directo (${bPrimalStr}) pasan a la fila $z_j - c_j$ del dual ${signExpl}, confirmando la <b>Optimalidad del Dual</b> (Diapo 45).`;
                                         case 6:
+                                            const degPrimalVars = (data.base || []).filter(b => b.B && b.B.isZero && b.B.isZero()).map(b => formatVarMath(b.var));
+                                            const isPrimalDegenerate = degPrimalVars.length > 0;
+                                            const altPrimalVars = [];
+                                            (data.varNames || []).forEach((v, idx) => {
+                                                const inBase = (data.base || []).some(b => b.var && b.var.trim().toLowerCase() === v.trim().toLowerCase());
+                                                if (!inBase && data.zj_cj && data.zj_cj[idx] && data.zj_cj[idx].isZero && data.zj_cj[idx].isZero()) {
+                                                    altPrimalVars.push(formatVarMath(v));
+                                                }
+                                            });
+                                            const isPrimalAlternative = (altPrimalVars.length > 0) || (data.verdict && data.verdict.includes('ALT'));
+                                            const altDualVars = (dual.dualNB || []).filter(dnb => dnb.primalBVal && dnb.primalBVal.isZero && dnb.primalBVal.isZero()).map(dnb => formatVarMath(dnb.dualVar));
+                                            const degDualVars = (dual.dualBase || []).filter(db => db.B && db.B.isZero && db.B.isZero()).map(db => formatVarMath(db.dualVar));
+
+                                            let caseSpecificCallout = '';
+                                            if (isPrimalDegenerate) {
+                                                caseSpecificCallout = `<div style="margin-top: 12px; padding: 10px 14px; background: rgba(249, 115, 22, 0.15); border-left: 3px solid #f97316; border-radius: 4px;">` +
+                                                    `⚡ <b>Diagnóstico Específico del Problema (Degenerada ➔ Alternativa):</b><br>` +
+                                                    `• <b>Directo (Primal):</b> Solución Óptima Degenerada. La variable básica <b>${degPrimalVars.join(', ')}</b> tiene recurso $B = 0$ (vértice redundante o punto triple).<br>` +
+                                                    `• <b>Dual:</b> Por la regla de pasaje de signos ($z_j - c_j = \\mp B$), la variable dual no básica <b>${altDualVars.join(', ')}</b> presenta costo reducido neto <b>$0^*$</b> ($z_j - c_j = 0$). Consecuentemente, el Dual posee <b>infinitas Soluciones Alternativas Múltiples</b> con idéntico funcional $W^* = ${zVal}$.` +
+                                                    `</div>`;
+                                            } else if (isPrimalAlternative) {
+                                                caseSpecificCallout = `<div style="margin-top: 12px; padding: 10px 14px; background: rgba(59, 130, 246, 0.15); border-left: 3px solid #3b82f6; border-radius: 4px;">` +
+                                                    `🔄 <b>Diagnóstico Específico del Problema (Alternativa ➔ Degenerada):</b><br>` +
+                                                    `• <b>Directo (Primal):</b> Soluciones Múltiples (Alternativas) con indicador neto $0^*$ en la variable no básica <b>${altPrimalVars.join(', ')}</b>.<br>` +
+                                                    `• <b>Dual:</b> Por la regla de pasaje ($B_{\\text{dual}} = \\pm(z_j - c_j)$), la variable básica del dual <b>${degDualVars.join(', ')}</b> toma recurso <b>$B = 0$</b> en la base, determinando una <b>Solución Óptima Degenerada</b> en el Dual.` +
+                                                    `</div>`;
+                                            } else {
+                                                caseSpecificCallout = `<div style="margin-top: 12px; padding: 10px 14px; background: rgba(16, 185, 129, 0.15); border-left: 3px solid #10b981; border-radius: 4px;">` +
+                                                    `✅ <b>Diagnóstico Específico del Problema (Finita Estándar Única):</b><br>` +
+                                                    `Ambos modelos convergen en un único punto extremo factible con igual funcional óptimo finito ($Z^* = W^* = ${zVal}$). Los multiplicadores sombra en la fila $z_j - c_j$ del Dual reflejan con exactitud los recursos $B$ del directo.` +
+                                                    `</div>`;
+                                            }
+
                                             return `<b>Diagnóstico de Solución y Teorema Fundamental de la Dualidad (Diapo 58):</b><br><br>` +
                                                 `El <b>Teorema Fundamental de la Dualidad</b> establece la correspondencia directa e indiscutible entre el problema Directo y su Dual:<br>` +
                                                 `• <b>Directa Finita $\\iff$ Dual Finita:</b> Al ser la solución óptima del Primal finita ($Z = ${zVal}$), el Dual alcanza obligatoriamente el mismo óptimo finito ($W = ${zVal}$), verificando la dualidad fuerte $Z_{\\text{ópt}} = W_{\\text{ópt}}$.<br>` +
                                                 `• <b>Degenerada $\\iff$ Alternativa:</b> Si el problema directo presenta degeneración (variable básica con $B = 0$ o empate en ratios $\\theta$), el dual presenta soluciones múltiples o alternativas ($z_j - c_j = 0$ en variable no básica), y viceversa.<br>` +
-                                                `• <b>Incompatible $\\iff$ Poliedro Abierto (No Acotada):</b> Si uno de los problemas no tiene solución factible, el otro puede mejorar indefinidamente.<br><br>` +
-                                                `<span style="color: var(--primary-light);">✅ <b>Conclusión:</b> Ambos modelos convergen en el mismo punto de equilibrio económico y geométrico.</span>`;
+                                                `• <b>Incompatible $\\iff$ Poliedro Abierto (No Acotada):</b> Si uno de los problemas no tiene solución factible, el otro puede mejorar indefinidamente.<br>` +
+                                                caseSpecificCallout;
                                     }
                                     return '';
                                 }
@@ -4388,8 +4540,16 @@
                                         ];
                                         document.getElementById('step-title').innerText = stepTitles[step] || '';
 
-                                        document.getElementById('btn-prev').disabled = (step === 0);
-                                        document.getElementById('btn-next').disabled = (step === totalSteps);
+                                        const atFirstStd = (step === 0);
+                                        const atLastStd = (step === totalSteps);
+                                        ['btn-prev', 'btn-first', 'btn-prev-bottom', 'btn-first-bottom'].forEach(id => {
+                                            const el = document.getElementById(id);
+                                            if (el) el.disabled = atFirstStd;
+                                        });
+                                        ['btn-next', 'btn-last', 'btn-next-bottom', 'btn-last-bottom'].forEach(id => {
+                                            const el = document.getElementById(id);
+                                            if (el) el.disabled = atLastStd;
+                                        });
 
                                         document.getElementById('step-explanation').innerHTML = getStepExplanation(step, data, dual);
                                         const pz = document.getElementById('primal-z-display') || document.getElementById('stepper-primal-z-display');
@@ -4434,7 +4594,10 @@
                                         data.zj_cj.forEach((val, idx) => {
                                             const isPrimalNB = !data.base.some(b => b.var.trim().toLowerCase() === data.varNames[idx].trim().toLowerCase());
                                             const hlZj = (step === 2 && isPrimalNB) ? 'hl-target' : '';
-                                            primalHtml += `<td class="${hlZj}"><b>${val.toTex()}</b></td>`;
+                                            const cellContent = (isPrimalNB && val.isZero())
+                                                ? `<span class="alt-zero-simple" title="Solución alternativa: variable no básica con costo reducido 0*">0*</span>`
+                                                : val.toTex();
+                                            primalHtml += `<td class="${hlZj}"><b>${cellContent}</b></td>`;
                                         });
                                         primalHtml += `</tr></tbody></table>`;
                                         document.getElementById('primal-table-container').innerHTML = primalHtml;
@@ -4503,8 +4666,16 @@
                                                 }
                                             } else {
                                                 if (step >= 5) {
-                                                    cellVal = val.toTex();
-                                                    cellClass = (step === 5) ? 'hl-target' : '';
+                                                    if (val.isZero()) {
+                                                        cellVal = `<div class="alt-zero-pill" title="Solución alternativa: indicador zj - cj = 0* en variable no básica">
+                                    <span class="alt-zero-num">0*</span>
+                                    <span class="alt-zero-label">Sol. Alternativa</span>
+                                </div>`;
+                                                        cellClass = 'hl-alt-zero';
+                                                    } else {
+                                                        cellVal = val.toTex();
+                                                        cellClass = (step === 5) ? 'hl-target' : '';
+                                                    }
                                                 }
                                             }
                                             dualHtml += `<td class="${cellClass}"><b>${cellVal}</b></td>`;
@@ -4518,36 +4689,83 @@
                                         if (step6Box) {
                                             if (step === 6) {
                                                 step6Box.style.display = 'block';
+                                                const primalVerdict = data.title || 'Solución Óptima';
+                                                const primalZ = data.Z ? data.Z.toTex() : '0';
+                                                const dualW = dual.W ? dual.W.toTex() : '0';
+
+                                                const degPrimalVars = (data.base || []).filter(b => b.B && b.B.isZero && b.B.isZero()).map(b => formatVarMath(b.var));
+                                                const isPrimalDegenerate = degPrimalVars.length > 0;
+
+                                                const altPrimalVars = [];
+                                                (data.varNames || []).forEach((v, idx) => {
+                                                    const inBase = (data.base || []).some(b => b.var && b.var.trim().toLowerCase() === v.trim().toLowerCase());
+                                                    if (!inBase && data.zj_cj && data.zj_cj[idx] && data.zj_cj[idx].isZero && data.zj_cj[idx].isZero()) {
+                                                        altPrimalVars.push(formatVarMath(v));
+                                                    }
+                                                });
+                                                const isPrimalAlternative = (altPrimalVars.length > 0) || (data.verdict && data.verdict.includes('ALT'));
+
+                                                const altDualVars = (dual.dualNB || []).filter(dnb => dnb.primalBVal && dnb.primalBVal.isZero && dnb.primalBVal.isZero()).map(dnb => formatVarMath(dnb.dualVar));
+                                                const isDualAlternative = (altDualVars.length > 0) || isPrimalDegenerate;
+
+                                                const degDualVars = (dual.dualBase || []).filter(db => db.B && db.B.isZero && db.B.isZero()).map(db => formatVarMath(db.dualVar));
+                                                const isDualDegenerate = (degDualVars.length > 0) || isPrimalAlternative;
+
+                                                let pStatus = primalVerdict;
+                                                let dStatus = 'Solución Óptima Factible Confirmada';
+                                                let dBadgeClass = 'optimal';
+                                                let dBadgeText = '⚖️ Correspondencia de Dualidad Fuerte';
+                                                let expNote = '';
+
+                                                if (isPrimalDegenerate) {
+                                                    pStatus = `Solución Óptima Degenerada (${degPrimalVars.join(', ')} con $B = 0$)`;
+                                                    dStatus = `Soluciones Alternativas (Múltiples) Confirmada (${altDualVars.join(', ')} con $0^*$)`;
+                                                    dBadgeClass = 'alternative';
+                                                    dBadgeText = '🔄 Teorema Fundamental: Primal Degenerado ➔ Dual con Soluciones Alternativas';
+                                                    expNote = `<b>⚖️ Teorema Fundamental de la Dualidad (Diapo 58 - Caso Degenerado ➔ Alternativo):</b><br>` +
+                                                        `• El Primal presenta degeneración en el vértice óptimo (${degPrimalVars.join(', ')} con $B = 0$).<br>` +
+                                                        `• El Dual confirma la existencia de <b>soluciones alternativas múltiples</b> con indicador neto <b>$0^*$</b> en la variable no básica <b>${altDualVars.join(', ')}</b>.`;
+                                                } else if (isPrimalAlternative) {
+                                                    pStatus = `Soluciones Múltiples (Alternativas) (${altPrimalVars.join(', ')} con $0^*$)`;
+                                                    dStatus = `Solución Óptima Degenerada Confirmada (${degDualVars.join(', ')} con $B = 0$)`;
+                                                    dBadgeClass = 'warning';
+                                                    dBadgeText = '⚡ Teorema Fundamental: Primal Alternativo ➔ Dual Degenerado';
+                                                    expNote = `<b>⚖️ Teorema Fundamental de la Dualidad (Diapo 58 - Caso Alternativo ➔ Degenerado):</b><br>` +
+                                                        `• El Primal presenta soluciones alternativas con costo reducido $0^*$ en la variable no básica ${altPrimalVars.join(', ')}.<br>` +
+                                                        `• El Dual presenta una solución básica óptima degenerada con $B = 0$ en la variable básica <b>${degDualVars.join(', ')}</b>.`;
+                                                } else {
+                                                    expNote = `<b>Cumplimiento del Teorema de Dualidad Fuerte:</b> Como el Primal es finito y factible con $Z^* = ${primalZ}$, el Dual alcanza idéntico óptimo finito $W^* = ${dualW}.`;
+                                                }
+
                                                 step6Box.innerHTML = `
                             <div class="verdict-card" style="border-left: 4px solid var(--accent-dual);">
                                 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-                                    <span class="verdict-badge optimal">⚖️ Correspondencia de Dualidad Fuerte</span>
-                                    <span style="font-family: var(--font-mono); font-weight: 700; color: var(--accent-dual);">Z* = ${data.Z ? data.Z.toTex() : '0'} = W*</span>
+                                    <span class="verdict-badge ${dBadgeClass}">${dBadgeText}</span>
+                                    <span style="font-family: var(--font-mono); font-weight: 700; color: var(--accent-dual);">Z* = ${primalZ} = W*</span>
                                 </div>
                                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-top: 8px;">
                                     <div style="background: rgba(11, 15, 25, 0.5); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
                                         <b style="color: var(--primary);">Problema Directo (Primal):</b><br>
-                                        • Veredicto: <b>${data.title || 'Solución Óptima'}</b><br>
-                                        • Funcional Óptimo: <b>Z = ${data.Z ? data.Z.toTex() : '0'}</b><br>
-                                        • Solución Factible en vértice extremo.
+                                        • Veredicto: <b>${pStatus}</b><br>
+                                        • Funcional Óptimo: <b>Z = ${primalZ}</b>
                                     </div>
                                     <div style="background: rgba(11, 15, 25, 0.5); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
                                         <b style="color: var(--accent-dual);">Problema Dual:</b><br>
-                                        • Veredicto: <b>Solución Óptima Factible</b><br>
-                                        • Funcional Óptimo: <b>W = ${dual.W ? dual.W.toTex() : '0'}</b><br>
-                                        • Condición de optimalidad verificada (${(dual.dualSense === 'MIN' || data.sense === 'MAX') ? '$z_j - c_j \\le 0$' : '$z_j - c_j \\ge 0$'}).
+                                        • Veredicto: <b>${dStatus}</b><br>
+                                        • Funcional Óptimo: <b>W = ${dualW}</b>
                                     </div>
                                 </div>
-                                <p style="margin-top: 8px; font-size: 0.88rem; color: var(--text-muted);">
-                                    <b>Cumplimiento del Teorema de Dualidad Fuerte:</b> Como el Primal es finito y factible con $Z^* = ${data.Z ? data.Z.toTex() : '0'}$, el Dual converge al mismo valor óptimo ($W^* = ${dual.W ? dual.W.toTex() : '0'}$).
-                                </p>
+                                <div style="background: rgba(255,255,255,0.03); padding: 10px 14px; border-radius: var(--radius-sm); font-size: 0.9rem; line-height: 1.5; margin-top: 10px;">
+                                    ${expNote}
+                                </div>
                             </div>`;
-                                            } else {
-                                                step6Box.style.display = 'none';
-                                            }
-                                        }
+                                                            } else {
+                step6Box.style.display = 'none';
+                step6Box.innerHTML = '';
+            }
+        }
 
-                                        renderLatex(document.getElementById('view-stepper'));
+        renderLatex(document.getElementById('view-stepper'));
                                     } catch (err) {
                                         console.error("Error in renderStepper:", err);
                                     }
@@ -4555,6 +4773,12 @@
 
                                 function changeStep(delta) {
                                     currentStep = Math.max(0, Math.min(totalSteps, currentStep + delta));
+                                    renderStepper();
+                                }
+
+                                function goToStep(target) {
+                                    if (target === -1) target = totalSteps;
+                                    currentStep = Math.max(0, Math.min(totalSteps, target));
                                     renderStepper();
                                 }
 
@@ -4579,6 +4803,13 @@
 
                                     if (currentData.eqCoeffs) {
                                         loadPresetEquations(presetKey);
+                                        try {
+                                            const nVars = currentData.eqCoeffs[0].coeffs.length;
+                                            const solved = solveSimplexWithHistory(currentData.sense, (currentData.origCosts || []).slice(0, nVars), currentData.eqCoeffs.map(r => ({ coeffs: r.coeffs, sign: r.sign, rhs: r.rhs })));
+                                            currentData = Object.assign({}, currentData, solved);
+                                        } catch (e) {
+                                            console.warn("Auto-solve preset on load:", e);
+                                        }
                                     }
                                     renderStepper();
                                     renderVerifier();
@@ -4690,8 +4921,12 @@
                                         primalHtml += `<tr class="zj-row">`;
                                         primalHtml += `<td></td><td>$z_j - c_j$</td>`;
                                         primalHtml += `<td><b>${data.Z.toTex()}</b></td>`;
-                                        data.zj_cj.forEach((val) => {
-                                            primalHtml += `<td><b>${val.toTex()}</b></td>`;
+                                        data.zj_cj.forEach((val, idx) => {
+                                            const isPrimalNB = !data.base.some(b => b.var.trim().toLowerCase() === data.varNames[idx].trim().toLowerCase());
+                                            const cellContent = (isPrimalNB && val.isZero())
+                                                ? `<span class="alt-zero-simple" title="Solución alternativa: variable no básica con costo reducido 0*">0*</span>`
+                                                : val.toTex();
+                                            primalHtml += `<td><b>${cellContent}</b></td>`;
                                         });
                                         primalHtml += `</tr></tbody></table>`;
                                         document.getElementById('verifier-primal-container').innerHTML = primalHtml;
@@ -4794,7 +5029,8 @@
                                     dual.zj_cj.forEach((targetVal, cIdx) => {
                                         const inZj = document.getElementById(`v-zj-${cIdx}`);
                                         total++;
-                                        if (inZj && new Fraction(inZj.value).equals(targetVal)) {
+                                        const cleanZj = inZj ? inZj.value.replace('*', '').trim() : '';
+                                        if (inZj && new Fraction(cleanZj).equals(targetVal)) {
                                             inZj.className = 'cell-input correct';
                                             correct++;
                                         } else {
