@@ -156,8 +156,14 @@ export function formatVarMath(name) {
     if (s.startsWith('$') && s.endsWith('$')) {
         s = s.slice(1, -1).trim();
     }
-    s = s.replace(/\\?mu_?\{?([a-zA-Z0-9]+)\}?/gi, '\\mu_{$1}');
     s = s.replace(/\\?lambda_?\{?([a-zA-Z0-9]+)\}?/gi, '\\lambda_{$1}');
+    s = s.replace(/\\?lambda(?![a-zA-Z])/gi, '\\lambda');
+    s = s.replace(/\\?mu_?\{?([a-zA-Z0-9]+)\}?/gi, '\\mu_{$1}');
+    s = s.replace(/\\?mu(?![a-zA-Z])/gi, '\\mu');
     s = s.replace(/^([xy])_?\{?([a-zA-Z0-9]+)\}?$/i, '$1_{$2}');
     return `$${s}$`;
+}
+
+export function toTexVar(name) {
+    return formatVarMath(name).replace(/\$/g, '');
 }

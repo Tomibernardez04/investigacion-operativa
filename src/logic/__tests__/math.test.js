@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { Fraction, F, BigM } from '../math.js';
+import { Fraction, F, BigM, formatVarMath, toTexVar } from '../math.js';
+import { renderLatex, renderLatexInHtml } from '../katexHelper.js';
 
 describe('Fraction - Exact Rational Arithmetic', () => {
     it('initializes from integers, strings, and decimals', () => {
@@ -78,5 +79,29 @@ describe('BigM - Big-M Method Arithmetic', () => {
 
         const negativeM = new BigM(F(500), F(-1)); // -M + 500 < 0
         expect(negativeM.lt(new BigM(F(0), F(0)))).toBe(true);
+    });
+});
+
+describe('Variable Formatting & KaTeX Polish', () => {
+    it('formats decision, slack, surplus, and Greek variables into valid LaTeX math', () => {
+        expect(formatVarMath('x1')).toBe('$x_{1}$');
+        expect(formatVarMath('y2')).toBe('$y_{2}$');
+        expect(formatVarMath('lambda2')).toBe('$\\lambda_{2}$');
+        expect(formatVarMath('\\lambda_2')).toBe('$\\lambda_{2}$');
+        expect(formatVarMath('lambda')).toBe('$\\lambda$');
+        expect(formatVarMath('mu1')).toBe('$\\mu_{1}$');
+        expect(formatVarMath('\\mu_1')).toBe('$\\mu_{1}$');
+        expect(formatVarMath('mu')).toBe('$\\mu$');
+
+        expect(toTexVar('lambda2')).toBe('\\lambda_{2}');
+        expect(toTexVar('x3')).toBe('x_{3}');
+    });
+
+    it('renders LaTeX HTML with KaTeX successfully for Greek variables', () => {
+        const htmlWithLambda = renderLatexInHtml('Variable saliente <b>lambda2</b> con ratio');
+        expect(htmlWithLambda).toContain('katex');
+
+        const pureTex = renderLatex('lambda2');
+        expect(pureTex).toContain('katex');
     });
 });

@@ -32,11 +32,13 @@ export default function DualEquationsPanel({
     const canonicalConstraints = [];
     let neededFlip = false;
     const flipNotes = [];
+    const flippedIndices = [];
 
     for (let i = 0; i < nRows; i++) {
         const r = constraints[i];
         if (isPrimalMax && r.sign === '>=') {
             neededFlip = true;
+            flippedIndices.push(i);
             canonicalConstraints.push({
                 coeffs: r.coeffs.map(x => x.neg()),
                 sign: '<=',
@@ -48,6 +50,7 @@ export default function DualEquationsPanel({
                 `${r.coeffs.map((val, idx) => `${val.neg().toTex()} x_${idx + 1}`).join(' + ')} \\le ${r.rhs.neg().toTex()}$`);
         } else if (!isPrimalMax && r.sign === '<=') {
             neededFlip = true;
+            flippedIndices.push(i);
             canonicalConstraints.push({
                 coeffs: r.coeffs.map(x => x.neg()),
                 sign: '>=',
@@ -130,18 +133,34 @@ export default function DualEquationsPanel({
     }
     dualHtml += `$$` + signConditions.join(', \\quad ') + `$$`;
 
-    // Step 5: Theoretical note accordion
-    dualHtml += `
+    // Step 5: Theoretical note accordion (only if canonical normalization occurred)
+    if (neededFlip) {
+        const flippedVarsText = flippedIndices.map(idx => `y_{${idx + 1}}`).join(', ');
+        const flippedSummaryText = flippedIndices.map(idx => {
+            const can = canonicalConstraints[idx];
+            return `${can.rhs.toTex()} y_{${idx + 1}}`;
+        }).join(' y ');
+
+        const flippedRowsDetails = flippedIndices.map(idx => {
+            const orig = constraints[idx];
+            const can = canonicalConstraints[idx];
+            const vName = `y_{${idx + 1}}`;
+            return `• <b>Fila ${idx + 1} (asociada a $${vName}$):</b> Al multiplicar la restricción original ($${orig.sign}$) por $-1$, el término en la función objetivo dual pasa a $${can.rhs.toTex()} ${vName}$. Todas las variables duales resultan no negativas ($${vName} \\ge 0$), lo que permite resolver el Dual directamente mediante el Método Simplex.`;
+        }).join('<br>');
+
+        dualHtml += `
     <details style="margin-top: 14px; background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px;">
         <summary style="font-weight: 600; color: #94a3b8; cursor: pointer; font-size: 0.88rem;">
-            💡 ¿Por qué en la Forma Canónica el signo cambia a $-5 y_2$ y $-1 y_2$ con $y_2 \\ge 0$? (Simétrico vs. Asimétrico)
+            💡 ¿Por qué en la Forma Canónica el signo cambia a $${flippedSummaryText}$ con $${flippedVarsText} \\ge 0$? (Simétrico vs. Asimétrico)
         </summary>
         <div style="margin-top: 8px; font-size: 0.85rem; line-height: 1.5; color: #cbd5e1;">
-            • <b>Dual Simétrico (Metodología de la Cátedra - Diap. 23 a 26 de DUAL):</b> Al multiplicar la restricción por $-1$, el término independiente pasa a $-5$ y el coeficiente a $-1$. Todas las variables duales resultan no negativas ($y_i \\ge 0$), lo que permite resolver el Dual directamente mediante el Método Simplex.<br>
-            • <b>Dual Asimétrico (Regla General):</b> Si se mantuviese la restricción original $x_2 \\ge 5$, la regla general asume una variable dual no positiva ($y_2 \\le 0$). Al efectuar el cambio de variable estándar $y_2' = -y_2 \\ge 0$, se obtiene exactamente la misma formulación.<br>
+            • <b>Dual Simétrico (Metodología de la Cátedra - Diap. 23 a 26 de DUAL):</b> Al multiplicar las restricciones no canónicas por $-1$, los coeficientes y términos independientes invierten su signo. Todas las variables duales resultan no negativas ($y_i \\ge 0$), lo que permite resolver el Dual directamente mediante el Método Simplex.<br>
+            ${flippedRowsDetails}<br>
+            • <b>Dual Asimétrico (Regla General):</b> Si se mantuviese la desigualdad original en sentido opuesto, la regla general asume variables duales no positivas ($y_i \\le 0$). Al efectuar el cambio de variable estándar $y_i' = -y_i \\ge 0$, se obtiene exactamente la misma formulación.<br>
             • Ambas formas son matemáticamente equivalentes, pero la cátedra enseña el pasaje canónico para trabajar siempre con variables no negativas.
         </div>
     </details>`;
+    }
 
     const handleSolveDualSimplex = () => {
         const dualModel = buildDualProblemFromPrimal(sense, c, constraints);

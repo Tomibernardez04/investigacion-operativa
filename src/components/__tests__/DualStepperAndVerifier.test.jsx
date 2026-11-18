@@ -5,7 +5,7 @@ import EmbeddedDualStepperPanel from '../EquationsTab/EmbeddedDualStepperPanel.j
 import DualEquationsPanel from '../EquationsTab/DualEquationsPanel.jsx';
 import VerifierTab from '../VerifierTab.jsx';
 import { PRESETS } from '../../data/presets.js';
-import { Fraction } from '../../logic/math.js';
+import { Fraction, F } from '../../logic/math.js';
 
 describe('EmbeddedDualStepperPanel & Step 6 Verdict', () => {
     it('navigates from Step 0 to Step 6 and renders the Fundamental Theorem comparison card', () => {
@@ -66,6 +66,47 @@ describe('DualEquationsPanel', () => {
 
         // Check that dual simplex stepper appears with W* and Fundamental Theorem
         expect(screen.getByText(/Tabla Inicial del Dual/i)).toBeInTheDocument();
+    });
+
+    it('does NOT render the theoretical flip accordion when all constraints are canonical', () => {
+        const primalData = PRESETS['slides_metal']; // all <= in MAX
+        const costs = primalData.origCosts.slice(0, 2);
+        const constrs = primalData.eqCoeffs;
+
+        render(
+            <DualEquationsPanel
+                sense={primalData.sense}
+                c={costs}
+                constraints={constrs}
+                primalOptZ="15000"
+            />
+        );
+
+        // Theoretical note about flipped signs should not be rendered
+        expect(screen.queryByText(/¿Por qué en la Forma Canónica el signo cambia/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/-5\s*y_2/i)).not.toBeInTheDocument();
+    });
+
+    it('renders the theoretical flip accordion dynamically when a constraint is flipped', () => {
+        // MAX with one >= constraint
+        const costs = [F(6), F(4)];
+        const constrs = [
+            { coeffs: [F(2), F(4)], sign: '<=', rhs: F(48) },
+            { coeffs: [F(0), F(1)], sign: '>=', rhs: F(5) }
+        ];
+
+        render(
+            <DualEquationsPanel
+                sense="MAX"
+                c={costs}
+                constraints={constrs}
+                primalOptZ="100"
+            />
+        );
+
+        // Theoretical accordion should now appear
+        expect(screen.getByText(/¿Por qué en la Forma Canónica el signo cambia a/i)).toBeInTheDocument();
+        expect(screen.getByText(/Fila 2 \(asociada a/i)).toBeInTheDocument();
     });
 });
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import MathView from '../MathView.jsx';
 
 export default function EquationBuilder({
@@ -13,10 +13,20 @@ export default function EquationBuilder({
     constraints,
     setConstraints
 }) {
+    const [rawNVars, setRawNVars] = useState(String(nVars));
+    const [rawNRows, setRawNRows] = useState(String(nRows));
+
+    useEffect(() => {
+        setRawNVars(String(nVars));
+    }, [nVars]);
+
+    useEffect(() => {
+        setRawNRows(String(nRows));
+    }, [nRows]);
+
     const handleSenseChange = (e) => setSense(e.target.value);
 
-    const handleNVarsChange = (e) => {
-        const val = Math.max(1, Math.min(6, parseInt(e.target.value, 10) || 1));
+    const applyNVarsChange = (val) => {
         setNVars(val);
         // Adjust c array
         const newC = [...c];
@@ -34,8 +44,25 @@ export default function EquationBuilder({
         setConstraints(newConstrs);
     };
 
-    const handleNRowsChange = (e) => {
-        const val = Math.max(1, Math.min(6, parseInt(e.target.value, 10) || 1));
+    const handleNVarsInputChange = (e) => {
+        const text = e.target.value;
+        setRawNVars(text);
+        if (text === '') return;
+        const parsed = parseInt(text, 10);
+        if (!isNaN(parsed) && parsed >= 1 && parsed <= 6) {
+            applyNVarsChange(parsed);
+        }
+    };
+
+    const handleNVarsBlur = () => {
+        let parsed = parseInt(rawNVars, 10);
+        if (isNaN(parsed) || parsed < 1) parsed = 1;
+        if (parsed > 6) parsed = 6;
+        setRawNVars(String(parsed));
+        applyNVarsChange(parsed);
+    };
+
+    const applyNRowsChange = (val) => {
         setNRows(val);
         const newConstrs = [...constraints];
         while (newConstrs.length < val) {
@@ -47,6 +74,24 @@ export default function EquationBuilder({
         }
         while (newConstrs.length > val) newConstrs.pop();
         setConstraints(newConstrs);
+    };
+
+    const handleNRowsInputChange = (e) => {
+        const text = e.target.value;
+        setRawNRows(text);
+        if (text === '') return;
+        const parsed = parseInt(text, 10);
+        if (!isNaN(parsed) && parsed >= 1 && parsed <= 6) {
+            applyNRowsChange(parsed);
+        }
+    };
+
+    const handleNRowsBlur = () => {
+        let parsed = parseInt(rawNRows, 10);
+        if (isNaN(parsed) || parsed < 1) parsed = 1;
+        if (parsed > 6) parsed = 6;
+        setRawNRows(String(parsed));
+        applyNRowsChange(parsed);
     };
 
     const handleCostChange = (idx, val) => {
@@ -98,10 +143,11 @@ export default function EquationBuilder({
                         id="eq-nvars-input"
                         type="number"
                         className="form-control"
-                        value={nVars}
+                        value={rawNVars}
                         min="1"
                         max="6"
-                        onChange={handleNVarsChange}
+                        onChange={handleNVarsInputChange}
+                        onBlur={handleNVarsBlur}
                     />
                 </div>
                 <div className="form-group">
@@ -110,10 +156,11 @@ export default function EquationBuilder({
                         id="eq-nrows-input"
                         type="number"
                         className="form-control"
-                        value={nRows}
+                        value={rawNRows}
                         min="1"
                         max="6"
-                        onChange={handleNRowsChange}
+                        onChange={handleNRowsInputChange}
+                        onBlur={handleNRowsBlur}
                     />
                 </div>
             </div>

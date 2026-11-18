@@ -1,4 +1,4 @@
-import { Fraction, F, BigM } from './math.js';
+import { Fraction, F, BigM, formatVarMath, toTexVar } from './math.js';
 
 // SIMPLEX SOLVER ENGINE WITH BIG-M METHOD & ITERATION HISTORY
 export function solveSimplexWithHistory(objSense, objCoeffs, constraints, varPrefix = 'x', funcName = 'Z') {
@@ -156,22 +156,20 @@ export function solveSimplexWithHistory(objSense, objCoeffs, constraints, varPre
     }
     objStandardTex += (objTerms.length > 0 ? objTerms.join(' ') : '0');
     constraintCols.forEach(cc => {
-        objStandardTex += ` + 0 ${cc.name}`;
+        objStandardTex += ` + 0 ${toTexVar(cc.name)}`;
     });
     if (artCols.length > 0) {
         const artSign = isMin ? '+ M' : '- M';
         artCols.forEach(ac => {
-            const uMath = ac.name.includes('\\') ? ac.name : `\\${ac.name}`;
-            objStandardTex += ` ${artSign} ${uMath}`;
+            objStandardTex += ` ${artSign} ${toTexVar(ac.name)}`;
         });
     }
 
     let nonNegList = [];
     for (let j = 1; j <= n; j++) nonNegList.push(`x_{${j}}`);
-    constraintCols.forEach(cc => nonNegList.push(cc.name));
+    constraintCols.forEach(cc => nonNegList.push(toTexVar(cc.name)));
     artCols.forEach(ac => {
-        const uMath = ac.name.includes('\\') ? ac.name : `\\${ac.name}`;
-        nonNegList.push(uMath);
+        nonNegList.push(toTexVar(ac.name));
     });
     let nonNegTex = nonNegList.join(', ') + ' \\ge 0';
     const initialBaseNames = base.map(bIdx => varNames[bIdx]);
@@ -290,8 +288,8 @@ export function solveSimplexWithHistory(objSense, objCoeffs, constraints, varPre
                         altCandidateCol: altCandidateCol,
                         altCandidateVar: altInVar,
                         explanation: `<b>¡Condición de optimalidad alcanzada (Solución Óptima 1)!</b> Todos los indicadores netos $z_j - c_j \\ge 0$.<br>` +
-                            `⚠️ <b>Detección de Solución Alternativa:</b> La variable no básica <b>${altInVar}</b> tiene costo reducido <b>$0^*$</b> ($z_j - c_j = 0$) con coeficientes técnicos positivos ($a_{i,j} > 0$).<br>` +
-                            `• Al ingresar a la base <b>${altInVar}</b> en reemplazo de <b>${altOutVar}</b> (ratio mínimo $\\theta = ${altMinRatio.toTex()}$), se obtiene una <b>segunda solución básica factible óptima</b> con el mismo valor funcional $Z = ${snap.Z.toTex()}.<br>` +
+                            `⚠️ <b>Detección de Solución Alternativa:</b> La variable no básica <b>${formatVarMath(altInVar)}</b> tiene costo reducido <b>$0^*$</b> ($z_j - c_j = 0$) con coeficientes técnicos positivos ($a_{i,j} > 0$).<br>` +
+                            `• Al ingresar a la base <b>${formatVarMath(altInVar)}</b> en reemplazo de <b>${formatVarMath(altOutVar)}</b> (ratio mínimo $\\theta = ${altMinRatio.toTex()}$), se obtiene una <b>segunda solución básica factible óptima</b> con el mismo valor funcional $Z = ${snap.Z.toTex()}.<br>` +
                             `👉 <i>Hacé clic en <b>"Siguiente ➔"</b> para visualizar la Tabla Óptima Alternativa 2 con la nueva base.</i>`
                     });
 
@@ -317,9 +315,9 @@ export function solveSimplexWithHistory(objSense, objCoeffs, constraints, varPre
                         altReturningCol: returningCol,
                         altReturningVar: varNames[returningCol],
                         explanation: `<b>¡Solución Óptima Alternativa 2 Alcanzada!</b><br>` +
-                            `• Ingresó la variable <b>${altInVar}</b> a la base y salió <b>${altOutVar}</b>.<br>` +
+                            `• Ingresó la variable <b>${formatVarMath(altInVar)}</b> a la base y salió <b>${formatVarMath(altOutVar)}</b>.<br>` +
                             `• El valor del funcional permanece óptimo e idéntico: <b>$Z = ${snap2.Z.toTex()}$</b>.<br>` +
-                            `• En la fila de indicadores netos, la variable saliente <b>${varNames[returningCol]}</b> ahora presenta indicador <b>$0^*$</b> (pivoteo de retorno hacia la Solución 1).<br>` +
+                            `• En la fila de indicadores netos, la variable saliente <b>${formatVarMath(varNames[returningCol])}</b> ahora presenta indicador <b>$0^*$</b> (pivoteo de retorno hacia la Solución 1).<br>` +
                             `👈 <i>Hacé clic en <b>"⬅ Anterior"</b> para comparar con la Solución 1.</i>`
                     });
                 } else {
@@ -395,8 +393,8 @@ export function solveSimplexWithHistory(objSense, objCoeffs, constraints, varPre
                         altCandidateCol: altCandidateCol,
                         altCandidateVar: altInVar,
                         explanation: `<b>¡Condición de optimalidad alcanzada (Solución Óptima 1)!</b> Todos los indicadores netos $z_j - c_j \\le 0$.<br>` +
-                            `⚠️ <b>Detección de Solución Alternativa:</b> La variable no básica <b>${altInVar}</b> tiene costo reducido <b>$0^*$</b> ($z_j - c_j = 0$) con coeficientes técnicos positivos ($a_{i,j} > 0$).<br>` +
-                            `• Al ingresar a la base <b>${altInVar}</b> en reemplazo de <b>${altOutVar}</b> (ratio mínimo $\\theta = ${altMinRatio.toTex()}$), se obtiene una <b>segunda solución básica factible óptima</b> con el mismo valor funcional $Z = ${snap.Z.toTex()}.<br>` +
+                            `⚠️ <b>Detección de Solución Alternativa:</b> La variable no básica <b>${formatVarMath(altInVar)}</b> tiene costo reducido <b>$0^*$</b> ($z_j - c_j = 0$) con coeficientes técnicos positivos ($a_{i,j} > 0$).<br>` +
+                            `• Al ingresar a la base <b>${formatVarMath(altInVar)}</b> en reemplazo de <b>${formatVarMath(altOutVar)}</b> (ratio mínimo $\\theta = ${altMinRatio.toTex()}$), se obtiene una <b>segunda solución básica factible óptima</b> con el mismo valor funcional $Z = ${snap.Z.toTex()}.<br>` +
                             `👉 <i>Hacé clic en <b>"Siguiente ➔"</b> para visualizar la Tabla Óptima Alternativa 2 con la nueva base.</i>`
                     });
 
@@ -421,9 +419,9 @@ export function solveSimplexWithHistory(objSense, objCoeffs, constraints, varPre
                         altReturningCol: returningCol,
                         altReturningVar: varNames[returningCol],
                         explanation: `<b>¡Solución Óptima Alternativa 2 Alcanzada!</b><br>` +
-                            `• Ingresó la variable <b>${altInVar}</b> a la base y salió <b>${altOutVar}</b>.<br>` +
+                            `• Ingresó la variable <b>${formatVarMath(altInVar)}</b> a la base y salió <b>${formatVarMath(altOutVar)}</b>.<br>` +
                             `• El valor del funcional permanece óptimo e idéntico: <b>$Z = ${snap2.Z.toTex()}$</b>.<br>` +
-                            `• En la fila de indicadores netos, la variable saliente <b>${varNames[returningCol]}</b> ahora presenta indicador <b>$0^*$</b> (pivoteo de retorno hacia la Solución 1).<br>` +
+                            `• En la fila de indicadores netos, la variable saliente <b>${formatVarMath(varNames[returningCol])}</b> ahora presenta indicador <b>$0^*$</b> (pivoteo de retorno hacia la Solución 1).<br>` +
                             `👈 <i>Hacé clic en <b>"⬅ Anterior"</b> para comparar con la Solución 1.</i>`
                     });
                 } else {
@@ -466,7 +464,7 @@ export function solveSimplexWithHistory(objSense, objCoeffs, constraints, varPre
                 snap,
                 inCol,
                 inVar: varNames[inCol],
-                explanation: `🚨 <b>Problema No Acotado (Poliedro Abierto):</b> La variable entrante <b>${varNames[inCol]}</b> tiene todos sus coeficientes no positivos ($a_{ij} \\le 0$). Su valor puede crecer indefinidamente.`
+                explanation: `🚨 <b>Problema No Acotado (Poliedro Abierto):</b> La variable entrante <b>${formatVarMath(varNames[inCol])}</b> tiene todos sus coeficientes no positivos ($a_{ij} \\le 0$). Su valor puede crecer indefinidamente.`
             });
             break;
         }
@@ -484,8 +482,8 @@ export function solveSimplexWithHistory(objSense, objCoeffs, constraints, varPre
             ratios,
             tieBreak,
             explanation: `<b>Iteración de Pivoteo:</b><br>` +
-                `• <b>Variable Entrante:</b> <b>${varNames[inCol]}</b> (indicador ${indicatorText}).<br>` +
-                `• <b>Variable Saliente:</b> <b>${varNames[base[outRow]]}</b> con ratio mínimo $\\theta = ${minRatio.toTex()}$.${tieMsg}<br>` +
+                `• <b>Variable Entrante:</b> <b>${formatVarMath(varNames[inCol])}</b> (indicador ${indicatorText}).<br>` +
+                `• <b>Variable Saliente:</b> <b>${formatVarMath(varNames[base[outRow]])}</b> con ratio mínimo $\\theta = ${minRatio.toTex()}$.${tieMsg}<br>` +
                 `• <b>Elemento Pivote:</b> $a_{${outRow + 1},${inCol + 1}} = ${A[outRow][inCol].toTex()}$.`
         });
 
@@ -542,7 +540,7 @@ export function solveSimplexWithHistory(objSense, objCoeffs, constraints, varPre
             verdict: 'INCOMPATIBLE',
             title: 'Sistema Incompatible',
             badgeClass: 'incompatible',
-            verdictMsg: `El sistema no posee ninguna solución factible ($\\mathcal{R} = \\emptyset$). La variable artificial <b>${incompArtVar}</b> no pudo eliminarse de la base y mantiene la penalización $M$ en el funcional ($Z = ${finalSnap.Z.toTex()}$).`,
+            verdictMsg: `El sistema no posee ninguna solución factible ($\\mathcal{R} = \\emptyset$). La variable artificial <b>${formatVarMath(incompArtVar)}</b> no pudo eliminarse de la base y mantiene la penalización $M$ en el funcional ($Z = ${finalSnap.Z.toTex()}$).`,
             iterations,
             sense: objSense,
             dualSense: (objSense === 'MAX') ? 'MIN' : 'MAX',
@@ -586,7 +584,7 @@ export function solveSimplexWithHistory(objSense, objCoeffs, constraints, varPre
         verdict = isDegenerate ? 'OPTIMAL_ALT_DEGENERATE' : 'OPTIMAL_ALTERNATIVES';
         verdictTitle = isDegenerate ? 'Soluciones Múltiples (Alternativas) y Degenerada' : 'Soluciones Múltiples (Alternativas)';
         badgeClass = 'alternative';
-        verdictMsg = `Existen <b>infinitas soluciones óptimas</b> con el mismo valor del funcional $Z^* = ${finalZ.toTex()}$. En la tabla óptima 1, la variable no básica <b>${altIter1.altCandidateVar}</b> presenta costo reducido <b>$0^*$</b>, lo que permite pivotear hacia la tabla óptima alternativa 2.`;
+        verdictMsg = `Existen <b>infinitas soluciones óptimas</b> con el mismo valor del funcional $Z^* = ${finalZ.toTex()}$. En la tabla óptima 1, la variable no básica <b>${formatVarMath(altIter1.altCandidateVar)}</b> presenta costo reducido <b>$0^*$</b>, lo que permite pivotear hacia la tabla óptima alternativa 2.`;
 
         const totalV = varNames.length;
         const v1 = new Array(totalV).fill(F(0));

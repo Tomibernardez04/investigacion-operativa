@@ -195,7 +195,7 @@ export default function SimplexPanel({
                                                     <MathView math={`${isDualSimplex ? 'b' : 'c'}_${cIdx + 1} = ${costTex}`} />
                                                 </div>
                                             )}
-                                            <MathView math={col.replace(/[\\\$]/g, '')} />
+                                            <MathView math={formatVarMath(col)} />
                                             {cIdx === cur.inCol && (
                                                 <span style={{ display: 'block', fontSize: '0.65rem' }}>▼ Entra</span>
                                             )}
@@ -216,7 +216,7 @@ export default function SimplexPanel({
                                     <tr key={`row-${rIdx}`} className={rowClass}>
                                         <td><MathView math={bRow.ck.toTex()} /></td>
                                         <td className="cell-base" style={isDualSimplex ? { color: 'var(--accent-dual)' } : {}}>
-                                            <MathView math={bRow.var.replace(/[\\\$]/g, '')} />
+                                            <MathView math={formatVarMath(bRow.var)} />
                                             {isLeavingRow && (
                                                 <span style={{ display: 'block', fontSize: '0.65rem', color: '#ef4444' }}>▲ Sale</span>
                                             )}
@@ -422,7 +422,7 @@ export default function SimplexPanel({
                             <b>Variables básicas en el óptimo: </b>
                             {simplexResult.base.map((b, idx) => (
                                 <span key={`opt-base-${idx}`}>
-                                    <MathView math={`${b.var.replace(/[\\\$]/g, '')} = ${b.B.toTex()}`} />
+                                    <MathView math={`${formatVarMath(b.var).replace(/\$/g, '')} = ${b.B.toTex()}`} />
                                     {idx < simplexResult.base.length - 1 ? ', ' : ''}
                                 </span>
                             ))}
