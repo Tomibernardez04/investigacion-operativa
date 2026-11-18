@@ -24,6 +24,14 @@ export default function EquationsTab() {
     const [activePanel, setActivePanel] = useState(null);
     const [simplexResult, setSimplexResult] = useState(null);
     const [primalDataForStepper, setPrimalDataForStepper] = useState(null);
+    const [solveId, setSolveId] = useState(1);
+
+    const handleEquationChange = () => {
+        setActivePresetId(null);
+        if (activePanel) {
+            setActivePanel(null);
+        }
+    };
 
     const handleLoadPreset = (presetKey) => {
         const p = PRESETS[presetKey];
@@ -54,6 +62,7 @@ export default function EquationsTab() {
         );
         setSimplexResult(solved);
         setPrimalDataForStepper(solved);
+        setSolveId(prev => prev + 1);
     };
 
     const getParsedModel = () => {
@@ -82,6 +91,7 @@ export default function EquationsTab() {
             }
             setSimplexResult(solved);
             setPrimalDataForStepper(solved);
+            setSolveId(prev => prev + 1);
             setActivePanel(panelName);
         } catch (err) {
             alert(`Error al procesar: ${err.message}`);
@@ -112,6 +122,7 @@ export default function EquationsTab() {
                 setC={setC}
                 constraints={constraints}
                 setConstraints={setConstraints}
+                onEquationChange={handleEquationChange}
             />
 
             {/* Action Buttons */}
@@ -141,6 +152,7 @@ export default function EquationsTab() {
             {/* Dynamic Panels */}
             {activePanel === 'simplex' && simplexResult && (
                 <SimplexPanel
+                    key={`simplex-${solveId}`}
                     simplexResult={simplexResult}
                     onClose={handleClosePanel}
                 />
@@ -148,6 +160,7 @@ export default function EquationsTab() {
 
             {activePanel === 'dual-eq' && (
                 <DualEquationsPanel
+                    key={`dual-eq-${solveId}`}
                     sense={sense}
                     c={parsedCosts}
                     constraints={parsedConstrs}
@@ -158,6 +171,7 @@ export default function EquationsTab() {
 
             {activePanel === 'dual-table' && primalDataForStepper && (
                 <EmbeddedDualStepperPanel
+                    key={`dual-table-${solveId}`}
                     primalData={primalDataForStepper}
                     onClose={handleClosePanel}
                 />

@@ -11,7 +11,8 @@ export default function EquationBuilder({
     c,
     setC,
     constraints,
-    setConstraints
+    setConstraints,
+    onEquationChange
 }) {
     const [rawNVars, setRawNVars] = useState(String(nVars));
     const [rawNRows, setRawNRows] = useState(String(nRows));
@@ -24,9 +25,19 @@ export default function EquationBuilder({
         setRawNRows(String(nRows));
     }, [nRows]);
 
-    const handleSenseChange = (e) => setSense(e.target.value);
+    const notifyChange = () => {
+        if (typeof onEquationChange === 'function') {
+            onEquationChange();
+        }
+    };
+
+    const handleSenseChange = (e) => {
+        notifyChange();
+        setSense(e.target.value);
+    };
 
     const applyNVarsChange = (val) => {
+        notifyChange();
         setNVars(val);
         // Adjust c array
         const newC = [...c];
@@ -63,8 +74,9 @@ export default function EquationBuilder({
     };
 
     const applyNRowsChange = (val) => {
+        notifyChange();
         setNRows(val);
-        const newConstrs = [...constraints];
+        const newConstrs = constraints.map(r => ({ ...r, coeffs: [...r.coeffs] }));
         while (newConstrs.length < val) {
             newConstrs.push({
                 coeffs: new Array(nVars).fill('1'),
@@ -95,26 +107,38 @@ export default function EquationBuilder({
     };
 
     const handleCostChange = (idx, val) => {
+        notifyChange();
         const newC = [...c];
         newC[idx] = val;
         setC(newC);
     };
 
     const handleCoeffChange = (rIdx, cIdx, val) => {
-        const newConstrs = [...constraints];
-        newConstrs[rIdx].coeffs[cIdx] = val;
+        notifyChange();
+        const newConstrs = constraints.map((row, r) => {
+            if (r !== rIdx) return row;
+            const newCoeffs = [...row.coeffs];
+            newCoeffs[cIdx] = val;
+            return { ...row, coeffs: newCoeffs };
+        });
         setConstraints(newConstrs);
     };
 
     const handleSignChange = (rIdx, val) => {
-        const newConstrs = [...constraints];
-        newConstrs[rIdx].sign = val;
+        notifyChange();
+        const newConstrs = constraints.map((row, r) => {
+            if (r !== rIdx) return row;
+            return { ...row, sign: val };
+        });
         setConstraints(newConstrs);
     };
 
     const handleRhsChange = (rIdx, val) => {
-        const newConstrs = [...constraints];
-        newConstrs[rIdx].rhs = val;
+        notifyChange();
+        const newConstrs = constraints.map((row, r) => {
+            if (r !== rIdx) return row;
+            return { ...row, rhs: val };
+        });
         setConstraints(newConstrs);
     };
 

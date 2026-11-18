@@ -19,8 +19,9 @@ export default function SimplexPanel({
     const panelRef = useRef(null);
 
     useEffect(() => {
+        setCurrentIter(0);
         if (panelRef.current && typeof panelRef.current.scrollIntoView === 'function') {
-            panelRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            panelRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     }, [simplexResult]);
 

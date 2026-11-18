@@ -92,4 +92,38 @@ describe('EquationsTab Preset Loading & State Cleanliness', () => {
         // Active panel should now be closed to cleanly reset state
         expect(screen.queryByText(/Resolución Completa por Método Simplex/i)).not.toBeInTheDocument();
     });
+
+    it('closes stale panel upon editing equations, and cleanly recalculates from Step 0 when solve is clicked again', () => {
+        render(<EquationsTab />);
+
+        // Step 1 & 2: Open Simplex panel initially
+        const solveBtn = screen.getByRole('button', { name: /1\. Resolver Primal por Simplex/i });
+        fireEvent.click(solveBtn);
+
+        expect(screen.getByText(/Resolución Completa por Método Simplex/i)).toBeInTheDocument();
+        expect(screen.getByText(/Tabla Inicial/i)).toBeInTheDocument();
+
+        // Advance stepper to iteration 1
+        const nextBtn = screen.getByRole('button', { name: /Siguiente ▶/i });
+        fireEvent.click(nextBtn);
+        expect(screen.getByText(/Iteración 1/i)).toBeInTheDocument();
+
+        // Step 3: Edit c_1 to 10 in the builder above -> stale panel should close immediately
+        const c1Input = screen.getByLabelText('c_1');
+        fireEvent.change(c1Input, { target: { value: '10' } });
+
+        expect(screen.queryByText(/Resolución Completa por Método Simplex/i)).not.toBeInTheDocument();
+
+        // Step 4: Click solve again
+        fireEvent.click(solveBtn);
+
+        // Panel opens fresh, reset to Step 0 (Tabla Inicial)
+        expect(screen.getByText(/Resolución Completa por Método Simplex/i)).toBeInTheDocument();
+        expect(screen.getByText(/Tabla Inicial/i)).toBeInTheDocument();
+
+        // Check that table reflects updated cost 10
+        const table = screen.getByRole('table');
+        expect(table.textContent).toContain('c_1 = 10');
+        expect(table.textContent).toContain('-10'); // indicator reflects new cost
+    });
 });
