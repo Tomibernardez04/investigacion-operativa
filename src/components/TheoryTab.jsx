@@ -102,12 +102,12 @@ export default function TheoryTab() {
                     </div>
 
                     <div className="rule-card card-panel">
-                        <div className="rule-card-title" style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--accent-dual)', marginBottom: '12px' }}>
-                            💡 ¿De dónde sale la columna $c_k$ del Dual?
+                        <div className="rule-card-title" style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--accent-dual)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span>💡 ¿De dónde sale la columna</span> <MathView math="c_k" /> <span>del Dual?</span>
                         </div>
                         <ul style={{ fontSize: '0.88rem', paddingLeft: '20px', color: 'var(--text-main)', lineHeight: 1.8, margin: 0 }}>
                             <li>
-                                <b>Variables Principales <MathView math="y_i" /></b> (asociadas a la $i$-ésima restricción del directo):<br />
+                                <b>Variables Principales <MathView math="y_i" /></b> (asociadas a la restricción <MathView math="i" /> del directo):<br />
                                 Su costo <MathView math="c_k" /> es el <b>recurso <MathView math="b_i" /> original del primal</b>.
                             </li>
                             <li style={{ marginTop: '10px' }}>

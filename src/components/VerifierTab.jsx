@@ -2,7 +2,67 @@ import React, { useState, useEffect } from 'react';
 import MathView from './MathView.jsx';
 import { PRESETS } from '../data/presets.js';
 import { solveDual } from '../logic/primalDual.js';
-import { Fraction } from '../logic/math.js';
+import { Fraction, F, formatVarMath } from '../logic/math.js';
+import { renderLatexInHtml } from '../logic/katexHelper.js';
+
+function formatPrimalEquationsHtml(data) {
+    if (!data) return '<p style="color: var(--text-muted);">No hay ecuaciones cargadas.</p>';
+
+    const sense = (data.sense === 'MIN') ? '\\text{Min }' : '\\text{Max }';
+    let zFormula = `$$\\mathbf{${sense} Z = `;
+
+    let nDec = 0;
+    if (data.eqCoeffs && data.eqCoeffs.length > 0 && data.eqCoeffs[0].coeffs) {
+        nDec = data.eqCoeffs[0].coeffs.length;
+    } else if (data.origCosts) {
+        nDec = data.origCosts.length;
+    }
+
+    const costTerms = [];
+    for (let j = 0; j < nDec; j++) {
+        const cVal = data.origCosts && data.origCosts[j] ? data.origCosts[j] : F(0);
+        if (j === 0) {
+            costTerms.push(`${cVal.toTex()} x_{${j + 1}}`);
+        } else {
+            if (cVal.lt(F(0))) {
+                costTerms.push(`- ${cVal.neg().toTex()} x_{${j + 1}}`);
+            } else {
+                costTerms.push(`+ ${cVal.toTex()} x_{${j + 1}}`);
+            }
+        }
+    }
+    zFormula += (costTerms.length > 0 ? costTerms.join(' ') : '0') + `}$$`;
+
+    let restrsHtml = `<div style="margin-top: 6px;"><b>Sujeto a las restricciones:</b><br>`;
+    if (data.eqCoeffs && data.eqCoeffs.length > 0) {
+        data.eqCoeffs.forEach((row, i) => {
+            let rowTex = `$$R_{${i + 1}}: \\quad `;
+            const rowTerms = [];
+            row.coeffs.forEach((coef, j) => {
+                if (j === 0) {
+                    rowTerms.push(`${coef.toTex()} x_{${j + 1}}`);
+                } else {
+                    if (coef.lt(F(0))) {
+                        rowTerms.push(`- ${coef.neg().toTex()} x_{${j + 1}}`);
+                    } else {
+                        rowTerms.push(`+ ${coef.toTex()} x_{${j + 1}}`);
+                    }
+                }
+            });
+            const comp = row.sign === '<=' ? '\\le' : (row.sign === '>=' ? '\\ge' : '=');
+            rowTex += rowTerms.join(' ') + ` ${comp} ${row.rhs.toTex()}$$`;
+            restrsHtml += rowTex;
+        });
+        restrsHtml += `$$x_j \\ge 0 \\quad (j = 1, \\dots, ${nDec})$$`;
+    } else if (data.origResources) {
+        data.origResources.forEach((res, i) => {
+            restrsHtml += `$$R_{${i + 1}}: \\quad \\dots \\le ${res.toTex()}$$`;
+        });
+    }
+    restrsHtml += `</div>`;
+
+    return zFormula + restrsHtml;
+}
 
 export default function VerifierTab() {
     const [selectedPresetKey, setSelectedPresetKey] = useState('slides_metal');
@@ -56,10 +116,11 @@ export default function VerifierTab() {
         setUserMatrix(newMat);
         setUserZj(newZj);
         setChecked(true);
+        const total = 1 + dual.dualBase.length * (3 + dual.dualVarNames.length) + dual.zj_cj.length;
         setValidationStatus({
             isCorrect: true,
-            correct: 1 + dual.dualBase.length * (3 + dual.dualVarNames.length) + dual.zj_cj.length,
-            total: 1 + dual.dualBase.length * (3 + dual.dualVarNames.length) + dual.zj_cj.length,
+            correct: total,
+            total,
             errors: []
         });
     };
@@ -74,7 +135,7 @@ export default function VerifierTab() {
         if (userW && new Fraction(userW).equals(dual.W)) {
             correct++;
         } else {
-            errors.push(`Funcional W: Debería ser ${dual.W.toTex()}`);
+            errors.push(`Funcional $W$: Debería ser $${dual.W.toTex()}$`);
         }
 
         // Check Base rows
@@ -84,7 +145,7 @@ export default function VerifierTab() {
             if (userCk[rIdx] && new Fraction(userCk[rIdx]).equals(db.ck)) {
                 correct++;
             } else {
-                errors.push(`Fila ${rIdx + 1} ck: Debería ser ${db.ck.toTex()}`);
+                errors.push(`Fila ${rIdx + 1} $c_k$: Debería ser $${db.ck.toTex()}$`);
             }
 
             // yk
@@ -94,7 +155,7 @@ export default function VerifierTab() {
             if (cleanUserYk === cleanTargetYk && cleanUserYk !== '') {
                 correct++;
             } else {
-                errors.push(`Fila ${rIdx + 1} variable básica: Debería ser ${db.dualVar}`);
+                errors.push(`Fila ${rIdx + 1} variable básica: Debería ser $${db.dualVar}$`);
             }
 
             // B
@@ -102,7 +163,7 @@ export default function VerifierTab() {
             if (userB[rIdx] && new Fraction(userB[rIdx]).equals(db.B)) {
                 correct++;
             } else {
-                errors.push(`Fila ${rIdx + 1} B: Debería ser ${db.B.toTex()}`);
+                errors.push(`Fila ${rIdx + 1} $B$: Debería ser $${db.B.toTex()}$`);
             }
 
             // Matrix cells
@@ -184,6 +245,13 @@ export default function VerifierTab() {
                         <button className="btn-step" onClick={handleClear}>↺ Limpiar</button>
                     </div>
                 </div>
+
+                {/* Initial Primal Equations Box */}
+                <div
+                    className="equation-box"
+                    dangerouslySetInnerHTML={{ __html: renderLatexInHtml(formatPrimalEquationsHtml(primalData)) }}
+                    style={{ marginTop: '12px', fontSize: '0.9rem' }}
+                />
             </div>
 
             {/* Results Feedback */}
@@ -191,7 +259,7 @@ export default function VerifierTab() {
                 <div className="results-box" style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '4px',
+                    gap: '6px',
                     marginTop: '14px',
                     padding: '14px',
                     background: validationStatus.isCorrect ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
@@ -203,11 +271,14 @@ export default function VerifierTab() {
                             ? `🎉 ¡IMPECABLE! ${validationStatus.correct}/${validationStatus.total} Celdas Correctas`
                             : `⚠️ Tenés ${validationStatus.total - validationStatus.correct} valores para corregir (${validationStatus.correct}/${validationStatus.total} correctos)`}
                     </div>
-                    <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>
-                        {validationStatus.isCorrect
-                            ? '¡Completaste toda la tabla dual a la perfección cumpliendo con todas las reglas de transposición y signos!'
-                            : (validationStatus.errors.length > 0 ? validationStatus.errors.slice(0, 3).join(' • ') : 'Revisá las celdas marcadas en rojo.')}
-                    </div>
+                    <div
+                        dangerouslySetInnerHTML={{
+                            __html: renderLatexInHtml(validationStatus.isCorrect
+                                ? '¡Completaste toda la tabla dual a la perfección cumpliendo con todas las reglas de transposición y signos!'
+                                : (validationStatus.errors.length > 0 ? validationStatus.errors.slice(0, 3).join(' • ') : 'Revisá las celdas marcadas en rojo (atención al cambio de signo en la traspuesta o en la fila $z_j - c_j$).'))
+                        }}
+                        style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}
+                    />
                 </div>
             )}
 
@@ -225,31 +296,59 @@ export default function VerifierTab() {
                         <table className="simplex-table">
                             <thead>
                                 <tr>
-                                    <th>$c_k$</th><th>$x_k$</th><th>$B$</th>
-                                    {primalData.varNames.map((v, i) => (
-                                        <th key={`pv-${i}`}>
-                                            <MathView math={v} />
-                                        </th>
-                                    ))}
+                                    <th><MathView math="c_k" /></th>
+                                    <th><MathView math="x_k" /></th>
+                                    <th><MathView math="B" /></th>
+                                    {primalData.varNames.map((v, i) => {
+                                        const dv = primalData.dualVarNames[i] || (`y${i + 1}`);
+                                        return (
+                                            <th key={`pv-${i}`}>
+                                                <MathView math={v} />
+                                                <span className="col-dual-mapping">
+                                                    <MathView math={dv} />
+                                                </span>
+                                            </th>
+                                        );
+                                    })}
                                 </tr>
                             </thead>
                             <tbody>
-                                {primalData.base.map((bRow, rIdx) => (
-                                    <tr key={`p-row-${rIdx}`}>
-                                        <td><MathView math={bRow.ck.toTex()} /></td>
-                                        <td className="cell-base"><MathView math={bRow.var} /></td>
-                                        <td className="cell-b"><MathView math={bRow.B.toTex()} /></td>
-                                        {bRow.row.map((cell, cIdx) => (
-                                            <td key={`p-cell-${rIdx}-${cIdx}`}><MathView math={cell.toTex()} /></td>
-                                        ))}
-                                    </tr>
-                                ))}
+                                {primalData.base.map((bRow, rIdx) => {
+                                    const isDegPrimalB = bRow.B && typeof bRow.B.isZero === 'function' && bRow.B.isZero();
+                                    return (
+                                        <tr key={`p-row-${rIdx}`}>
+                                            <td><MathView math={bRow.ck.toTex()} /></td>
+                                            <td className="cell-base"><MathView math={bRow.var} /></td>
+                                            <td className={`cell-b ${isDegPrimalB ? 'hl-degenerate' : ''}`}>
+                                                {isDegPrimalB ? (
+                                                    <b className="deg-zero-simple" title="Solución óptima degenerada: variable básica con B = 0">0</b>
+                                                ) : (
+                                                    <MathView math={bRow.B.toTex()} />
+                                                )}
+                                            </td>
+                                            {bRow.row.map((cell, cIdx) => (
+                                                <td key={`p-cell-${rIdx}-${cIdx}`}><MathView math={cell.toTex()} /></td>
+                                            ))}
+                                        </tr>
+                                    );
+                                })}
                                 <tr className="zj-row">
-                                    <td></td><td>$z_j - c_j$</td>
+                                    <td></td>
+                                    <td><MathView math="z_j - c_j" /></td>
                                     <td><b><MathView math={primalData.Z.toTex()} /></b></td>
-                                    {primalData.zj_cj.map((val, idx) => (
-                                        <td key={`pzj-${idx}`}><b><MathView math={val.toTex()} /></b></td>
-                                    ))}
+                                    {primalData.zj_cj.map((val, idx) => {
+                                        const isPrimalNB = !primalData.base.some(b => b.var.trim().toLowerCase() === primalData.varNames[idx].trim().toLowerCase());
+                                        const isAltZero = isPrimalNB && typeof val.isZero === 'function' && val.isZero();
+                                        return (
+                                            <td key={`pzj-${idx}`}>
+                                                {isAltZero ? (
+                                                    <span className="alt-zero-simple" title="Solución alternativa: variable no básica con costo reducido 0*">0*</span>
+                                                ) : (
+                                                    <b><MathView math={val.toTex()} /></b>
+                                                )}
+                                            </td>
+                                        );
+                                    })}
                                 </tr>
                             </tbody>
                         </table>
@@ -276,7 +375,9 @@ export default function VerifierTab() {
                         <table className="simplex-table">
                             <thead>
                                 <tr>
-                                    <th>$c_k$</th><th>$y_k$</th><th>$B$</th>
+                                    <th><MathView math="c_k" /></th>
+                                    <th><MathView math="y_k" /></th>
+                                    <th><MathView math="B" /></th>
                                     {dual.dualVarNames.map((dv, i) => (
                                         <th key={`dv-${i}`}><MathView math={dv} /></th>
                                     ))}
@@ -326,7 +427,8 @@ export default function VerifierTab() {
                                     </tr>
                                 ))}
                                 <tr className="zj-row">
-                                    <td></td><td>$z_j - c_j$</td>
+                                    <td></td>
+                                    <td><MathView math="z_j - c_j" /></td>
                                     <td>---</td>
                                     {dual.zj_cj.map((targetVal, cIdx) => (
                                         <td key={`uzj-${cIdx}`}>

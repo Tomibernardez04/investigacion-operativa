@@ -1,28 +1,14 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
+import { renderLatex } from '../logic/katexHelper.js';
 
-export default function MathView({ math, block = false, style = {} }) {
-    const containerRef = useRef(null);
-
-    useEffect(() => {
-        if (!containerRef.current) return;
-        if (window.renderMathInElement) {
-            window.renderMathInElement(containerRef.current, {
-                delimiters: [
-                    { left: '$$', right: '$$', display: true },
-                    { left: '$', right: '$', display: false },
-                    { left: '\\(', right: '\\)', display: false },
-                    { left: '\\[', right: '\\]', display: true }
-                ],
-                throwOnError: false
-            });
-        }
-    }, [math]);
-
-    const content = block ? `$$${math}$$` : `$${math}$`;
-
+export default function MathView({ math, block = false, style = {}, className = '' }) {
+    if (math === null || math === undefined || math === '') return null;
+    const html = renderLatex(math, block);
     return (
-        <span ref={containerRef} style={style}>
-            {content}
-        </span>
+        <span
+            className={className}
+            style={style}
+            dangerouslySetInnerHTML={{ __html: html }}
+        />
     );
 }

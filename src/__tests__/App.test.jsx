@@ -44,7 +44,7 @@ describe('App Full Integration & Usability Tests', () => {
 
         // Check panel opened
         expect(screen.getByText(/Resolución Completa por Método Simplex/i)).toBeInTheDocument();
-        expect(screen.getByText(/Iteración 0/i)).toBeInTheDocument();
+        expect(screen.getByText(/Tabla Inicial/i)).toBeInTheDocument();
 
         // Advance stepper
         const nextBtn = screen.getByText(/Siguiente ▶/i);

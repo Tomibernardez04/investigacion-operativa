@@ -1,16 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import MathView from '../MathView.jsx';
 import SimplexPanel from './SimplexPanel.jsx';
 import { buildDualProblemFromPrimal } from '../../logic/primalDual.js';
 import { solveSimplexWithHistory } from '../../logic/simplex.js';
+import { renderLatexInHtml } from '../../logic/katexHelper.js';
+import { F } from '../../logic/math.js';
 
 export default function DualEquationsPanel({
     sense,
     c,
     constraints,
+    primalOptZ,
     onClose
 }) {
     const [dualSimplexResult, setDualSimplexResult] = useState(null);
+    const panelRef = useRef(null);
+
+    useEffect(() => {
+        if (panelRef.current && typeof panelRef.current.scrollIntoView === 'function') {
+            panelRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }, []);
 
     const isPrimalMax = (sense === 'MAX');
     const dualSense = isPrimalMax ? 'MIN' : 'MAX';
@@ -33,7 +43,9 @@ export default function DualEquationsPanel({
                 rhs: r.rhs.neg(),
                 wasFlipped: true
             });
-            flipNotes.push(`• Fila ${i + 1}: Era de tipo ≥. Multiplicada por -1, queda canónica ≤ con b_${i + 1} = ${r.rhs.neg().toTex()}`);
+            flipNotes.push(`• <b>Fila ${i + 1}:</b> Era de tipo $\\ge$. Al multiplicar por $-1$, queda canónica $\\le$: ` +
+                `$${r.coeffs.map((val, idx) => `${val.toTex()} x_${idx + 1}`).join(' + ')} \\ge ${r.rhs.toTex()} \\implies ` +
+                `${r.coeffs.map((val, idx) => `${val.neg().toTex()} x_${idx + 1}`).join(' + ')} \\le ${r.rhs.neg().toTex()}$`);
         } else if (!isPrimalMax && r.sign === '<=') {
             neededFlip = true;
             canonicalConstraints.push({
@@ -42,7 +54,9 @@ export default function DualEquationsPanel({
                 rhs: r.rhs.neg(),
                 wasFlipped: true
             });
-            flipNotes.push(`• Fila ${i + 1}: Era de tipo ≤. Multiplicada por -1, queda canónica ≥ con b_${i + 1} = ${r.rhs.neg().toTex()}`);
+            flipNotes.push(`• <b>Fila ${i + 1}:</b> Era de tipo $\\le$. Al multiplicar por $-1$, queda canónica $\\ge$: ` +
+                `$${r.coeffs.map((val, idx) => `${val.toTex()} x_${idx + 1}`).join(' + ')} \\le ${r.rhs.toTex()} \\implies ` +
+                `${r.coeffs.map((val, idx) => `${val.neg().toTex()} x_${idx + 1}`).join(' + ')} \\ge ${r.rhs.neg().toTex()}$`);
         } else {
             canonicalConstraints.push({
                 coeffs: [...r.coeffs],
@@ -52,6 +66,82 @@ export default function DualEquationsPanel({
             });
         }
     }
+
+    // Build unified dual HTML exactly like Verificador_Pasaje_Primal_Dual.html
+    let dualHtml = '';
+
+    // Step 1: Info box if canonical normalization occurred
+    if (neededFlip) {
+        dualHtml += `
+        <div style="background: rgba(56, 189, 248, 0.08); border-left: 4px solid var(--primary); padding: 12px 16px; border-radius: 6px; margin-bottom: 16px;">
+            <div style="font-weight: 700; color: var(--primary); margin-bottom: 6px; font-size: 0.95rem;">
+                📐 Normalización a Forma Canónica (Metodología Cátedra - Dual Simétrico)
+            </div>
+            <div style="font-size: 0.88rem; line-height: 1.5; color: var(--text-main);">
+                En problemas de <b>${isPrimalMax ? 'Maximización' : 'Minimización'}</b>, la forma canónica de la cátedra exige que todas las desigualdades sean de tipo <b>${isPrimalMax ? '≤' : '≥'}</b> para que todas las variables duales resulten no negativas ($y_i \\ge 0$):
+                <div style="margin-top: 6px; margin-bottom: 6px; padding-left: 8px;">
+                    ${flipNotes.join('<br>')}
+                </div>
+            </div>
+        </div>`;
+    }
+
+    // Step 2: Dual objective W
+    dualHtml += `<b>Función Objetivo Dual:</b>`;
+    dualHtml += `$$\\mathbf{\\text{${dualSense} } W = `;
+    for (let i = 0; i < nRows; i++) {
+        const bVal = canonicalConstraints[i].rhs;
+        const bSign = bVal.lt(F(0)) ? '-' : '+';
+        const bAbs = bVal.lt(F(0)) ? bVal.neg() : bVal;
+        if (i === 0) {
+            dualHtml += `${bVal.toTex()} y_${i + 1}`;
+        } else {
+            dualHtml += ` ${bSign} ${bAbs.toTex()} y_${i + 1}`;
+        }
+    }
+    dualHtml += `}$$<br><b>Sujeto a las restricciones duales:</b><br>`;
+
+    // Step 3: Dual constraints
+    for (let j = 0; j < nVars; j++) {
+        let restr = `$$`;
+        for (let i = 0; i < nRows; i++) {
+            const aVal = canonicalConstraints[i].coeffs[j];
+            const aSign = aVal.lt(F(0)) ? '-' : '+';
+            const aAbs = aVal.lt(F(0)) ? aVal.neg() : aVal;
+            if (i === 0) {
+                restr += `${aVal.toTex()} y_${i + 1}`;
+            } else {
+                restr += ` ${aSign} ${aAbs.toTex()} y_${i + 1}`;
+            }
+        }
+        restr += ` ${dualComp} ${c[j].toTex()} \\quad \\text{(asociada a } x_${j + 1}\\text{)}$$`;
+        dualHtml += restr;
+    }
+
+    // Step 4: Conditions on dual variables
+    dualHtml += `<br><b>Condiciones sobre las variables duales:</b><br>`;
+    const signConditions = [];
+    for (let i = 0; i < nRows; i++) {
+        if (canonicalConstraints[i].sign === '=') {
+            signConditions.push(`y_${i + 1} \\text{ libre}`);
+        } else {
+            signConditions.push(`y_${i + 1} \\ge 0`);
+        }
+    }
+    dualHtml += `$$` + signConditions.join(', \\quad ') + `$$`;
+
+    // Step 5: Theoretical note accordion
+    dualHtml += `
+    <details style="margin-top: 14px; background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px;">
+        <summary style="font-weight: 600; color: #94a3b8; cursor: pointer; font-size: 0.88rem;">
+            💡 ¿Por qué en la Forma Canónica el signo cambia a $-5 y_2$ y $-1 y_2$ con $y_2 \\ge 0$? (Simétrico vs. Asimétrico)
+        </summary>
+        <div style="margin-top: 8px; font-size: 0.85rem; line-height: 1.5; color: #cbd5e1;">
+            • <b>Dual Simétrico (Metodología de la Cátedra - Diap. 23 a 26 de DUAL):</b> Al multiplicar la restricción por $-1$, el término independiente pasa a $-5$ y el coeficiente a $-1$. Todas las variables duales resultan no negativas ($y_i \\ge 0$), lo que permite resolver el Dual directamente mediante el Método Simplex.<br>
+            • <b>Dual Asimétrico (Regla General):</b> Si se mantuviese la restricción original $x_2 \\ge 5$, la regla general asume una variable dual no positiva ($y_2 \\le 0$). Al efectuar el cambio de variable estándar $y_2' = -y_2 \\ge 0$, se obtiene exactamente la misma formulación.<br>
+            • Ambas formas son matemáticamente equivalentes, pero la cátedra enseña el pasaje canónico para trabajar siempre con variables no negativas.
+        </div>
+    </details>`;
 
     const handleSolveDualSimplex = () => {
         const dualModel = buildDualProblemFromPrimal(sense, c, constraints);
@@ -66,7 +156,7 @@ export default function DualEquationsPanel({
     };
 
     return (
-        <div className="card-panel" style={{ borderLeft: '4px solid var(--accent-dual)', marginTop: '20px' }}>
+        <div ref={panelRef} className="card-panel" style={{ borderLeft: '4px solid var(--accent-dual)', marginTop: '20px' }}>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--accent-dual)', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
@@ -81,85 +171,12 @@ export default function DualEquationsPanel({
                 </button>
             </div>
 
-            {/* Normalization Alert Box */}
-            {neededFlip && (
-                <div style={{ background: 'rgba(56, 189, 248, 0.08)', borderLeft: '4px solid var(--primary)', padding: '12px 16px', borderRadius: '6px', marginBottom: '16px' }}>
-                    <div style={{ fontWeight: 700, color: 'var(--primary)', marginBottom: '6px', fontSize: '0.95rem' }}>
-                        📐 Normalización a Forma Canónica (Metodología Cátedra - Dual Simétrico)
-                    </div>
-                    <div style={{ fontSize: '0.88rem', lineHeight: 1.5, color: 'var(--text-main)' }}>
-                        En problemas de <b>{isPrimalMax ? 'Maximización' : 'Minimización'}</b>, la forma canónica de la cátedra exige que todas las desigualdades sean de tipo <b>{isPrimalMax ? '≤' : '≥'}</b> para que todas las variables duales resulten no negativas ($y_i \ge 0$):
-                        <div style={{ marginTop: '6px', marginBottom: '6px', paddingLeft: '8px' }}>
-                            {flipNotes.map((note, idx) => (
-                                <div key={`fn-${idx}`}>{note}</div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Objective W equation */}
-            <div className="equation-box" style={{ marginBottom: '14px' }}>
-                <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Función Objetivo Dual:</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-dual)' }}>
-                    <MathView
-                        math={`\\text{${dualSense} } W = ` + canonicalConstraints.map((cc, i) => {
-                            const bVal = cc.rhs;
-                            const bSign = bVal.lt(0) ? '-' : (i === 0 ? '' : '+');
-                            const bAbs = bVal.lt(0) ? bVal.neg() : bVal;
-                            return `${bSign} ${bAbs.toTex()} y_{${i + 1}}`;
-                        }).join(' ')}
-                        block
-                    />
-                </div>
-            </div>
-
-            {/* Constraints */}
-            <div style={{ marginBottom: '14px' }}>
-                <b style={{ fontSize: '0.88rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                    Sujeto a las restricciones duales:
-                </b>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
-                    {Array.from({ length: nVars }, (_, j) => {
-                        const lhs = canonicalConstraints.map((cc, i) => {
-                            const aVal = cc.coeffs[j];
-                            const aSign = aVal.lt(0) ? '-' : (i === 0 ? '' : '+');
-                            const aAbs = aVal.lt(0) ? aVal.neg() : aVal;
-                            return `${aSign} ${aAbs.toTex()} y_{${i + 1}}`;
-                        }).join(' ');
-                        const rhsVal = c[j] ? c[j].toTex() : '0';
-                        return (
-                            <div key={`dual-con-${j}`} className="equation-box" style={{ padding: '8px 12px' }}>
-                                <MathView math={`${lhs} ${dualComp} ${rhsVal} \\quad \\text{(asociada a } x_{${j + 1}}\\text{)}`} />
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-
-            {/* Sign conditions */}
-            <div style={{ marginBottom: '16px' }}>
-                <b style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>Condiciones sobre las variables duales:</b>
-                <div className="equation-box" style={{ marginTop: '6px', padding: '8px 12px' }}>
-                    <MathView
-                        math={canonicalConstraints.map((cc, i) => (
-                            cc.sign === '=' ? `y_{${i + 1}} \\text{ libre}` : `y_{${i + 1}} \\ge 0`
-                        )).join(', \\quad ')}
-                        block
-                    />
-                </div>
-            </div>
-
-            {/* Accordion note */}
-            <details style={{ marginTop: '14px', background: 'rgba(15, 23, 42, 0.5)', border: '1px solid var(--border)', borderRadius: '6px', padding: '10px 14px' }}>
-                <summary style={{ fontWeight: 600, color: '#94a3b8', cursor: 'pointer', fontSize: '0.88rem' }}>
-                    💡 ¿Por qué en la Forma Canónica el signo cambia a -5 y₂ y -1 y₂ con y₂ ≥ 0? (Simétrico vs. Asimétrico)
-                </summary>
-                <div style={{ marginTop: '8px', fontSize: '0.85rem', lineHeight: 1.5, color: '#cbd5e1' }}>
-                    • <b>Dual Simétrico (Metodología de la Cátedra):</b> Al multiplicar la restricción por -1, el término independiente pasa a negativo y se invierte la desigualdad. Todas las variables duales resultan no negativas ($y_i \ge 0$), lo que permite resolver el Dual directamente mediante el Método Simplex.<br />
-                    • <b>Dual Asimétrico (Regla General):</b> Si se mantuviese la desigualdad original, la regla general asume una variable dual no positiva ($y_i \le 0$). Al efectuar el cambio de variable estándar $y_i' = -y_i \ge 0$, se obtiene exactamente la misma formulación.
-                </div>
-            </details>
+            {/* Single cohesive equation-box with all equations formatted */}
+            <div
+                className="equation-box"
+                dangerouslySetInnerHTML={{ __html: renderLatexInHtml(dualHtml) }}
+                style={{ fontSize: '0.95rem', lineHeight: 1.6 }}
+            />
 
             {/* Action button */}
             <div style={{ marginTop: '16px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -174,10 +191,14 @@ export default function DualEquationsPanel({
 
             {/* Dual Simplex Table Area */}
             {dualSimplexResult && (
-                <SimplexPanel
-                    simplexResult={dualSimplexResult}
-                    onClose={() => setDualSimplexResult(null)}
-                />
+                <div style={{ marginTop: '20px', borderTop: '1px dashed var(--border)', paddingTop: '20px' }}>
+                    <SimplexPanel
+                        simplexResult={dualSimplexResult}
+                        isDualSimplex={true}
+                        primalOptZ={primalOptZ}
+                        onClose={() => setDualSimplexResult(null)}
+                    />
+                </div>
             )}
         </div>
     );

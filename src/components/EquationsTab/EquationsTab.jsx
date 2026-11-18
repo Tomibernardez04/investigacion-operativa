@@ -66,11 +66,25 @@ export default function EquationsTab() {
     };
 
     const handleOpenPanel = (panelName) => {
-        const { parsedCosts, parsedConstrs } = getParsedModel();
-        const solved = solveSimplexWithHistory(sense, parsedCosts, parsedConstrs);
-        setSimplexResult(solved);
-        setPrimalDataForStepper(solved);
-        setActivePanel(panelName);
+        try {
+            const { parsedCosts, parsedConstrs } = getParsedModel();
+            const solved = solveSimplexWithHistory(sense, parsedCosts, parsedConstrs);
+            if (panelName === 'dual-table') {
+                if (solved.verdict === 'INCOMPATIBLE') {
+                    alert('El problema directo es Incompatible (sin solución factible). Por el Teorema Fundamental de la Dualidad, el Dual es No Acotado (Poliedro Abierto) o Incompatible.');
+                    return;
+                }
+                if (solved.verdict === 'UNBOUNDED') {
+                    alert('El problema directo es No Acotado (Poliedro Abierto). Por el Teorema Fundamental de la Dualidad, el Dual es Incompatible.');
+                    return;
+                }
+            }
+            setSimplexResult(solved);
+            setPrimalDataForStepper(solved);
+            setActivePanel(panelName);
+        } catch (err) {
+            alert(`Error al procesar: ${err.message}`);
+        }
     };
 
     const handleClosePanel = () => {
@@ -136,6 +150,7 @@ export default function EquationsTab() {
                     sense={sense}
                     c={parsedCosts}
                     constraints={parsedConstrs}
+                    primalOptZ={simplexResult?.Z ? simplexResult.Z.toTex() : null}
                     onClose={handleClosePanel}
                 />
             )}

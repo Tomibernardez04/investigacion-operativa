@@ -1,23 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import MathView from '../MathView.jsx';
 import Graphic2D from '../Graphic2D.jsx';
 import { formatVarMath } from '../../logic/math.js';
+import { renderLatexInHtml } from '../../logic/katexHelper.js';
 
 export default function SimplexPanel({
     simplexResult,
-    onClose
+    onClose,
+    varPrefix = 'x',
+    funcName = 'Z',
+    isDualSimplex = false,
+    primalOptZ = null
 }) {
     const [currentIter, setCurrentIter] = useState(0);
     const [showGraphic2D, setShowGraphic2D] = useState(false);
     const [showStdForm, setShowStdForm] = useState(false);
     const [alpha, setAlpha] = useState(0.5);
+    const panelRef = useRef(null);
+
+    useEffect(() => {
+        if (panelRef.current && typeof panelRef.current.scrollIntoView === 'function') {
+            panelRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }, [simplexResult]);
 
     if (!simplexResult || !simplexResult.iterations) return null;
 
     const iterations = simplexResult.iterations;
     const maxIter = iterations.length - 1;
-    const iterData = iterations[currentIter] || iterations[0];
-    const snap = iterData.snap;
+    const cur = iterations[currentIter] || iterations[0];
+    const snap = cur.snap;
 
     const handleFirst = () => setCurrentIter(0);
     const handlePrev = () => setCurrentIter(prev => Math.max(0, prev - 1));
@@ -26,14 +38,40 @@ export default function SimplexPanel({
 
     const is2D = simplexResult.origConstraints && simplexResult.origConstraints[0].coeffs.length === 2;
 
+    // Badges text
+    let badgeText = '';
+    if (cur.isAlternativeOptimal1) {
+        badgeText = `Iteración ${currentIter} (Tabla Óptima 1 — 0* Detectado)`;
+    } else if (cur.isAlternativeOptimal2) {
+        badgeText = `Iteración ${currentIter} (Tabla Óptima Alternativa 2)`;
+    } else if (currentIter === 0) {
+        badgeText = isDualSimplex ? 'Tabla Inicial del Dual' : 'Tabla Inicial';
+    } else if (currentIter === maxIter) {
+        badgeText = isDualSimplex ? 'Tabla Final del Dual' : 'Tabla Final';
+    } else {
+        badgeText = `Iteración ${currentIter}`;
+    }
+
+    const showVerdict = cur.isOptimal || currentIter === maxIter || cur.isUnbounded;
+    const badgeClass = simplexResult.badgeClass || 'optimal';
+
     return (
-        <div className="card-panel" style={{ borderLeft: '4px solid var(--primary)', marginTop: '20px' }}>
+        <div
+            ref={panelRef}
+            className="card-panel"
+            style={{
+                borderLeft: isDualSimplex ? '4px solid var(--accent-dual)' : '4px solid var(--primary)',
+                marginTop: '20px'
+            }}
+        >
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '14px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                    <span className="badge-type badge-primal">PRIMAL DIRECTO</span>
-                    <span style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '1.05rem' }}>
-                        Resolución Completa por Método Simplex
+                    <span className={`badge-type ${isDualSimplex ? 'badge-dual' : 'badge-primal'}`}>
+                        {isDualSimplex ? 'RESOLUCIÓN DEL DUAL (SIMPLEX)' : 'PRIMAL DIRECTO'}
+                    </span>
+                    <span style={{ fontWeight: 700, color: isDualSimplex ? 'var(--accent-dual)' : 'var(--primary)', fontSize: '1.05rem' }}>
+                        {isDualSimplex ? 'Resolución Completa del Dual por Método Simplex' : 'Resolución Completa por Método Simplex'}
                     </span>
                 </div>
                 <button
@@ -72,7 +110,7 @@ export default function SimplexPanel({
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 {simplexResult.standardForm.steps.map((st, sIdx) => (
                                     <div key={`std-${sIdx}`} style={{ background: 'rgba(255,255,255,0.03)', padding: '8px 12px', borderRadius: '4px' }}>
-                                        <div dangerouslySetInnerHTML={{ __html: st.explanation }} style={{ fontSize: '0.85rem', marginBottom: '4px' }} />
+                                        <div dangerouslySetInnerHTML={{ __html: renderLatexInHtml(st.explanation) }} style={{ fontSize: '0.85rem', marginBottom: '4px' }} />
                                         <MathView math={st.stdEqTex} block />
                                     </div>
                                 ))}
@@ -96,8 +134,8 @@ export default function SimplexPanel({
                 border: '1px solid rgba(255,255,255,0.06)'
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                    <span className="step-badge">Iteración {currentIter} de {maxIter}</span>
-                    <span style={{ fontWeight: 700, color: 'var(--primary)' }}>
+                    <span className="step-badge">{badgeText}</span>
+                    <span style={{ fontWeight: 700, color: isDualSimplex ? 'var(--accent-dual)' : 'var(--primary)' }}>
                         {snap ? snap.phaseName : 'Método Simplex'}
                     </span>
                 </div>
@@ -106,9 +144,13 @@ export default function SimplexPanel({
                         <button
                             className="btn-step"
                             onClick={() => setShowGraphic2D(!showGraphic2D)}
-                            style={{ background: 'rgba(14, 165, 233, 0.15)', color: '#38bdf8', borderColor: 'rgba(14, 165, 233, 0.35)' }}
+                            style={{
+                                background: isDualSimplex ? 'rgba(249, 115, 22, 0.15)' : 'rgba(14, 165, 233, 0.15)',
+                                color: isDualSimplex ? '#fb923c' : '#38bdf8',
+                                borderColor: isDualSimplex ? 'rgba(249, 115, 22, 0.35)' : 'rgba(14, 165, 233, 0.35)'
+                            }}
                         >
-                            📊 {showGraphic2D ? 'Ocultar Gráfico 2D' : 'Gráfico 2D'}
+                            📊 {showGraphic2D ? 'Ocultar Gráfico 2D' : `Gráfico 2D ${isDualSimplex ? 'Dual' : ''}`}
                         </button>
                     )}
                     <button className="btn-step" onClick={handleFirst} disabled={currentIter === 0}>⏮ Inicio</button>
@@ -118,136 +160,236 @@ export default function SimplexPanel({
                 </div>
             </div>
 
-            {/* Iteration Explanation */}
-            {iterData.explanation && (
+            {/* Iteration Explanation Box (Rendered with KaTeX) */}
+            {cur.explanation && (
                 <div
                     className="step-explanation"
-                    dangerouslySetInnerHTML={{ __html: iterData.explanation }}
+                    dangerouslySetInnerHTML={{ __html: renderLatexInHtml(cur.explanation) }}
                     style={{ marginBottom: '16px' }}
                 />
             )}
 
-            {/* Tableau Table */}
+            {/* Simplex Tableau Table */}
             {snap && (
                 <div style={{ overflowX: 'auto', marginBottom: '16px' }}>
                     <table className="simplex-table">
                         <thead>
-                            {/* Costs row */}
-                            <tr className="costs-row">
-                                <th colSpan={3} style={{ textAlign: 'right', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                                    Costos originales $c_j$:
-                                </th>
-                                {snap.cols.map((colName, cIdx) => (
-                                    <th key={`cost-${cIdx}`}>
-                                        <MathView math={snap.costs[cIdx].toTex()} />
-                                    </th>
-                                ))}
-                                {iterData.ratios && <th><MathView math="\text{Ratio } \theta" /></th>}
-                            </tr>
-                            {/* Column titles */}
                             <tr>
-                                <th>Base</th>
                                 <th><MathView math="c_k" /></th>
+                                <th><MathView math={`${varPrefix}_k`} /></th>
                                 <th><MathView math="B" /></th>
-                                {snap.cols.map((colName, cIdx) => {
-                                    const isEntering = iterData.inCol === cIdx;
+                                {snap.cols.map((col, cIdx) => {
+                                    let hlCol = '';
+                                    if (cur.isAlternativeOptimal1 && cIdx === cur.altCandidateCol) {
+                                        hlCol = 'hl-alt-col';
+                                    } else if (cur.isAlternativeOptimal2 && cIdx === cur.altReturningCol) {
+                                        hlCol = 'hl-alt-col';
+                                    } else if (cIdx === cur.inCol) {
+                                        hlCol = 'hl-entering';
+                                    }
+                                    const costTex = (snap.costs && snap.costs[cIdx]) ? snap.costs[cIdx].toTex() : '';
                                     return (
-                                        <th
-                                            key={`col-${cIdx}`}
-                                            className={isEntering ? 'th-entering' : ''}
-                                            style={isEntering ? { background: 'rgba(56, 189, 248, 0.25)', color: '#38bdf8' } : {}}
-                                        >
-                                            <MathView math={colName.replace(/[\\\$]/g, '')} />
-                                            {isEntering && <span style={{ display: 'block', fontSize: '0.65rem' }}>▼ Entra</span>}
+                                        <th key={`th-${cIdx}`} className={hlCol}>
+                                            {costTex !== '' && (
+                                                <div style={{ fontSize: '0.75rem', fontWeight: 'normal', opacity: 0.85, marginBottom: '2px' }}>
+                                                    <MathView math={`${isDualSimplex ? 'b' : 'c'}_${cIdx + 1} = ${costTex}`} />
+                                                </div>
+                                            )}
+                                            <MathView math={col.replace(/[\\\$]/g, '')} />
+                                            {cIdx === cur.inCol && (
+                                                <span style={{ display: 'block', fontSize: '0.65rem' }}>▼ Entra</span>
+                                            )}
                                         </th>
                                     );
                                 })}
-                                {iterData.ratios && <th><MathView math="\theta = B_i / a_{ij}" /></th>}
+                                <th><MathView math={`\\theta = \\frac{B_i}{a_{i${cur.inCol >= 0 ? cur.inCol + 1 : 'j'}}}`} /></th>
                             </tr>
                         </thead>
                         <tbody>
-                            {snap.baseRows.map((row, rIdx) => {
-                                const isLeaving = iterData.outRow === rIdx;
+                            {snap.baseRows.map((bRow, rIdx) => {
+                                const isLeavingRow = (rIdx === cur.outRow);
+                                const rowClass = isLeavingRow ? 'hl-leaving' : '';
+                                const isFinalTable = cur.isOptimal || (currentIter === maxIter);
+                                const isDegB = isFinalTable && bRow.B && bRow.B.isZero();
+
                                 return (
-                                    <tr
-                                        key={`base-${rIdx}`}
-                                        className={isLeaving ? 'tr-leaving' : ''}
-                                        style={isLeaving ? { background: 'rgba(239, 68, 68, 0.15)' } : {}}
-                                    >
-                                        <td style={{ fontWeight: 700 }}>
-                                            <MathView math={row.var.replace(/[\\\$]/g, '')} />
-                                            {isLeaving && <span style={{ display: 'block', fontSize: '0.65rem', color: '#ef4444' }}>▲ Sale</span>}
+                                    <tr key={`row-${rIdx}`} className={rowClass}>
+                                        <td><MathView math={bRow.ck.toTex()} /></td>
+                                        <td className="cell-base" style={isDualSimplex ? { color: 'var(--accent-dual)' } : {}}>
+                                            <MathView math={bRow.var.replace(/[\\\$]/g, '')} />
+                                            {isLeavingRow && (
+                                                <span style={{ display: 'block', fontSize: '0.65rem', color: '#ef4444' }}>▲ Sale</span>
+                                            )}
                                         </td>
-                                        <td><MathView math={row.ck.toTex()} /></td>
-                                        <td style={{ fontWeight: 700 }}><MathView math={row.B.toTex()} /></td>
-                                        {row.row.map((val, cIdx) => {
-                                            const isPivot = iterData.outRow === rIdx && iterData.inCol === cIdx;
+                                        <td className={isDegB ? 'cell-b hl-degenerate' : 'cell-b'}>
+                                            {isDegB ? (
+                                                <div className="deg-zero-pill" title="Solución básica degenerada: variable básica con B = 0">
+                                                    <span className="deg-zero-num">0</span>
+                                                    <span className="deg-zero-label">Degenerada</span>
+                                                </div>
+                                            ) : (
+                                                <MathView math={bRow.B.toTex()} />
+                                            )}
+                                        </td>
+                                        {bRow.row.map((cell, cIdx) => {
+                                            let cellClass = '';
+                                            if (rIdx === cur.outRow && cIdx === cur.inCol) {
+                                                cellClass = 'hl-pivot';
+                                            } else if (cur.isAlternativeOptimal1 && cIdx === cur.altCandidateCol) {
+                                                cellClass = 'hl-alt-col';
+                                            } else if (cur.isAlternativeOptimal2 && cIdx === cur.altReturningCol) {
+                                                cellClass = 'hl-alt-col';
+                                            } else if (cIdx === cur.inCol) {
+                                                cellClass = 'hl-entering';
+                                            } else if (rIdx === cur.outRow) {
+                                                cellClass = 'hl-leaving';
+                                            }
+
                                             return (
-                                                <td
-                                                    key={`cell-${rIdx}-${cIdx}`}
-                                                    style={isPivot ? { background: 'rgba(250, 204, 21, 0.3)', fontWeight: 800, color: '#facc15' } : {}}
-                                                >
-                                                    <MathView math={val.toTex()} />
+                                                <td key={`c-${rIdx}-${cIdx}`} className={cellClass}>
+                                                    <MathView math={cell.toTex()} />
                                                 </td>
                                             );
                                         })}
-                                        {iterData.ratios && (
-                                            <td style={{ fontSize: '0.85rem' }}>
-                                                {iterData.ratios[rIdx] && iterData.ratios[rIdx].ratio !== null ? (
-                                                    <MathView math={iterData.ratios[rIdx].ratio.toTex()} />
-                                                ) : '-'}
-                                            </td>
-                                        )}
+                                        <td className={isLeavingRow ? 'hl-target' : ''}>
+                                            <b>
+                                                {cur.ratios && cur.ratios[rIdx] && cur.ratios[rIdx].ratio !== null ? (
+                                                    <MathView math={cur.ratios[rIdx].ratio.toTex()} />
+                                                ) : '---'}
+                                            </b>
+                                        </td>
                                     </tr>
                                 );
                             })}
+
                             {/* Zj - Cj row */}
-                            <tr className="zj-cj-row" style={{ background: 'rgba(0,0,0,0.4)', fontWeight: 700 }}>
-                                <td colSpan={2} style={{ textAlign: 'center' }}>$z_j - c_j$</td>
-                                <td style={{ color: 'var(--primary)', fontSize: '1rem' }}>
-                                    <MathView math={`Z = ${snap.Z.toTex()}`} />
+                            <tr className="zj-row">
+                                <td></td>
+                                <td><MathView math={`${funcName.toLowerCase()}_j - ${isDualSimplex ? 'b' : 'c'}_j`} /></td>
+                                <td>
+                                    <b style={{ color: isDualSimplex ? 'var(--accent-dual)' : 'var(--primary)' }}>
+                                        <MathView math={snap.Z.toTex()} />
+                                    </b>
                                 </td>
-                                {snap.zj_cj.map((zj, cIdx) => (
-                                    <td key={`zj-${cIdx}`} style={{ color: zj.isZero() ? 'var(--highlight)' : 'inherit' }}>
-                                        <MathView math={zj.toTex()} />
-                                    </td>
-                                ))}
-                                {iterData.ratios && <td></td>}
+                                {snap.zj_cj.map((zVal, cIdx) => {
+                                    let isAltZero = false;
+                                    if (cur.isAlternativeOptimal1 && cIdx === cur.altCandidateCol) {
+                                        isAltZero = true;
+                                    } else if (cur.isAlternativeOptimal2 && cIdx === cur.altReturningCol) {
+                                        isAltZero = true;
+                                    }
+
+                                    if (isAltZero) {
+                                        return (
+                                            <td key={`zj-${cIdx}`} className="hl-alt-zero" title="Solución alternativa: indicador 0* en variable no básica">
+                                                <div className="alt-zero-pill">
+                                                    <span className="alt-zero-num">0*</span>
+                                                    <span className="alt-zero-label">Sol. Alternativa</span>
+                                                </div>
+                                            </td>
+                                        );
+                                    }
+
+                                    const hlCol = (cIdx === cur.inCol) ? 'hl-entering' : '';
+                                    return (
+                                        <td key={`zj-${cIdx}`} className={hlCol}>
+                                            <b><MathView math={zVal.toTex()} /></b>
+                                        </td>
+                                    );
+                                })}
+                                <td></td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             )}
 
-            {/* Verdict Card on Last Iteration */}
-            {currentIter === maxIter && (
-                <div className={`verdict-card verdict-${simplexResult.badgeClass}`} style={{
-                    background: 'rgba(19, 27, 46, 0.85)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius-md)',
-                    padding: '16px',
-                    marginTop: '16px'
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                        <span className={`badge-type badge-${simplexResult.badgeClass}`} style={{ textTransform: 'uppercase' }}>
-                            {simplexResult.title}
+            {/* Verdict Card */}
+            {showVerdict && simplexResult.verdict && (
+                <div className="verdict-card" style={isDualSimplex ? { borderLeft: '4px solid var(--accent-dual)' } : {}}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                        <span className={`verdict-badge ${badgeClass}`}>
+                            ⚖️ Veredicto {isDualSimplex ? 'Dual' : ''}: {simplexResult.title}
                         </span>
-                        {simplexResult.Z && (
-                            <span style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '1.1rem' }}>
-                                Valor Óptimo: <MathView math={`Z^* = ${simplexResult.Z.toTex()}`} />
-                            </span>
-                        )}
+                        <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: isDualSimplex ? 'var(--accent-dual)' : 'var(--primary)', fontSize: '1.15rem' }}>
+                            {funcName}* = {simplexResult.Z ? <MathView math={simplexResult.Z.toTex()} /> : '---'}
+                        </span>
                     </div>
-                    <div dangerouslySetInnerHTML={{ __html: simplexResult.verdictMsg }} style={{ fontSize: '0.9rem', lineHeight: 1.5 }} />
 
-                    {/* Multiple solutions alpha slider */}
-                    {simplexResult.alternativeData && simplexResult.alternativeData.hasAlternatives && (
-                        <div style={{ marginTop: '14px', padding: '12px', background: 'rgba(0,0,0,0.3)', borderRadius: '6px' }}>
-                            <div style={{ fontWeight: 700, marginBottom: '6px' }}>
-                                Segmento de Soluciones Óptimas: $X^* = \alpha X_1 + (1 - \alpha) X_2 \quad (0 \le \alpha \le 1)$
+                    <div
+                        dangerouslySetInnerHTML={{
+                            __html: renderLatexInHtml(isDualSimplex ? simplexResult.verdictMsg.replace(/\$Z/g, '$W') : simplexResult.verdictMsg)
+                        }}
+                        style={{ fontSize: '0.95rem', lineHeight: 1.5, color: 'var(--text-main)' }}
+                    />
+
+                    {/* If Dual Simplex: Show Fundamental Theorem of Duality Box */}
+                    {isDualSimplex && simplexResult.verdict && simplexResult.verdict.startsWith('OPTIMAL') && (
+                        <div style={{ background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.4)', borderRadius: '8px', padding: '12px', marginTop: '10px' }}>
+                            <div style={{ fontWeight: 700, color: '#34d399', fontSize: '0.95rem', marginBottom: '4px' }}>
+                                🎯 Teorema Fundamental de la Dualidad:
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <label style={{ fontSize: '0.85rem' }}>$\alpha = {alpha}$:</label>
+                            <div style={{ fontSize: '1rem', textAlign: 'center', margin: '8px 0', color: '#f1f5f9' }}>
+                                <MathView math={`Z^*_{\\text{Primal}} = ${primalOptZ || simplexResult.Z.toTex()} \\quad \\Longleftrightarrow \\quad W^*_{\\text{Dual}} = ${simplexResult.Z.toTex()}`} block />
+                            </div>
+                            <div style={{ fontSize: '0.88rem', color: '#cbd5e1', lineHeight: 1.5 }}>
+                                • El óptimo del Dual alcanza el mismo valor objetivo que el Primal (<MathView math="Z^* = W^*" />).<br />
+                                • Los valores óptimos de las variables duales <MathView math="y_i^*" /> representan los <b>precios sombra</b> (tasa marginal de valor de cada recurso <MathView math="b_i" />).
+                            </div>
+                        </div>
+                    )}
+
+                    {isDualSimplex && simplexResult.verdict === 'UNBOUNDED' && (
+                        <div style={{ background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.4)', borderRadius: '8px', padding: '12px', marginTop: '10px' }}>
+                            <div style={{ fontWeight: 700, color: '#f87171', fontSize: '0.95rem', marginBottom: '4px' }}>
+                                🎯 Consecuencia del Teorema Fundamental de la Dualidad:
+                            </div>
+                            <div style={{ fontSize: '0.9rem', color: '#f1f5f9', lineHeight: 1.5, marginTop: '6px' }}>
+                                • Al ser el <b>Problema Dual No Acotado</b> (<MathView math="W \to \pm\infty" />), el <b>Problema Primal es Incompatible (Infactible)</b>.<br />
+                                • No existe ninguna combinación de <MathView math="(x_1, x_2, \dots)" /> que satisfaga simultáneamente todas las restricciones del primal (región factible vacía: <MathView math="\mathcal{R}_{\text{Primal}} = \emptyset" />).
+                            </div>
+                        </div>
+                    )}
+
+                    {isDualSimplex && simplexResult.verdict === 'INCOMPATIBLE' && (
+                        <div style={{ background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.4)', borderRadius: '8px', padding: '12px', marginTop: '10px' }}>
+                            <div style={{ fontWeight: 700, color: '#fbbf24', fontSize: '0.95rem', marginBottom: '4px' }}>
+                                🎯 Consecuencia del Teorema Fundamental de la Dualidad:
+                            </div>
+                            <div style={{ fontSize: '0.9rem', color: '#f1f5f9', lineHeight: 1.5, marginTop: '6px' }}>
+                                • Al ser el <b>Problema Dual Incompatible</b>, el <b>Problema Primal</b> o bien es <b>No Acotado</b> o bien es <b>Incompatible</b>.
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Multiple solutions section */}
+                    {simplexResult.alternativeData && simplexResult.alternativeData.hasAlternatives && (
+                        <div style={{ background: 'rgba(15, 23, 42, 0.7)', border: '1px solid rgba(245, 158, 11, 0.4)', borderRadius: '8px', padding: '14px', marginTop: '10px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+                                <span style={{ fontWeight: 700, color: '#fbbf24', fontSize: '0.95rem' }}>
+                                    📐 Expresión General de Soluciones Alternativas (Combinación Lineal Convexa)
+                                </span>
+                                <span style={{ fontSize: '0.8rem', background: 'rgba(245, 158, 11, 0.15)', color: '#fde68a', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+                                    0 ≤ α ≤ 1
+                                </span>
+                            </div>
+                            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', margin: '0 0 10px 0' }}>
+                                Cualquier punto sobre el segmento que conecta ambos vértices óptimos es también una solución factible óptima con <b><MathView math={`Z^* = ${simplexResult.Z.toTex()}`} /></b>:
+                            </p>
+                            <div style={{ background: 'rgba(0, 0, 0, 0.35)', padding: '12px', borderRadius: '6px', textAlign: 'center', marginBottom: '12px' }}>
+                                <MathView math="X = \alpha \cdot X^{(1)} + (1 - \alpha) \cdot X^{(2)}, \quad 0 \le \alpha \le 1" block />
+                            </div>
+
+                            {/* Interactive alpha slider */}
+                            <div style={{ marginTop: '12px', background: 'rgba(0,0,0,0.25)', borderRadius: '6px', padding: '10px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fde68a' }}>
+                                        🎛️ Explorador interactivo del segmento de soluciones:
+                                    </span>
+                                    <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#38bdf8', fontSize: '0.9rem' }}>
+                                        α = {alpha.toFixed(2)} (1 - α = {(1 - alpha).toFixed(2)})
+                                    </span>
+                                </div>
                                 <input
                                     type="range"
                                     min="0"
@@ -255,21 +397,47 @@ export default function SimplexPanel({
                                     step="0.05"
                                     value={alpha}
                                     onChange={(e) => setAlpha(parseFloat(e.target.value))}
-                                    style={{ flex: 1 }}
+                                    style={{ width: '100%', accentColor: '#38bdf8', cursor: 'pointer' }}
                                 />
+                                <div style={{ marginTop: '8px', fontSize: '0.85rem', textAlign: 'center', color: '#f1f5f9' }}>
+                                    {(() => {
+                                        const alt = simplexResult.alternativeData;
+                                        const resStrs = [];
+                                        for (let j = 0; j < alt.nDecisionVars; j++) {
+                                            const v1 = alt.sol1.vector[j].toNumber();
+                                            const v2 = alt.sol2.vector[j].toNumber();
+                                            const val = alpha * v1 + (1 - alpha) * v2;
+                                            resStrs.push(`${alt.varNames[j]} = ${val.toFixed(2)}`);
+                                        }
+                                        return <b>Punto {resStrs.join(', ')} con {funcName} = {simplexResult.Z.toTex()}</b>;
+                                    })()}
+                                </div>
                             </div>
+                        </div>
+                    )}
+
+                    {/* Basic variables at optimum for unique solution */}
+                    {simplexResult.base && simplexResult.base.length > 0 && !simplexResult.alternativeData?.hasAlternatives && (
+                        <div style={{ background: 'rgba(0,0,0,0.25)', padding: '8px 12px', borderRadius: '6px', fontSize: '0.9rem', marginTop: '8px' }}>
+                            <b>Variables básicas en el óptimo: </b>
+                            {simplexResult.base.map((b, idx) => (
+                                <span key={`opt-base-${idx}`}>
+                                    <MathView math={`${b.var.replace(/[\\\$]/g, '')} = ${b.B.toTex()}`} />
+                                    {idx < simplexResult.base.length - 1 ? ', ' : ''}
+                                </span>
+                            ))}
                         </div>
                     )}
                 </div>
             )}
 
-            {/* 2D Graphic (Embedded at bottom) */}
+            {/* 2D Graphic */}
             {is2D && showGraphic2D && (
                 <Graphic2D
                     history={simplexResult}
                     currentIter={currentIter}
-                    varPrefix="x"
-                    funcName="Z"
+                    varPrefix={varPrefix}
+                    funcName={funcName}
                 />
             )}
         </div>
