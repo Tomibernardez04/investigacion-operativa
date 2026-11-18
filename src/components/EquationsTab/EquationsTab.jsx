@@ -29,6 +29,7 @@ export default function EquationsTab() {
         const p = PRESETS[presetKey];
         if (!p || !p.eqCoeffs) return;
         setActivePresetId(presetKey);
+        setActivePanel(null); // Close any open panel to cleanly reset states
         setSense(p.sense);
         const varsCount = p.eqCoeffs[0].coeffs.length;
         const rowsCount = p.eqCoeffs.length;

@@ -438,6 +438,8 @@ export default function SimplexPanel({
                     currentIter={currentIter}
                     varPrefix={varPrefix}
                     funcName={funcName}
+                    onIterChange={setCurrentIter}
+                    onClose={() => setShowGraphic2D(false)}
                 />
             )}
         </div>
