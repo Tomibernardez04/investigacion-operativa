@@ -6,3 +6,20 @@
 !/README.md
 !/Verificador_Pasaje_Primal_Dual.html
 !/index.html
+!/package.json
+!/package-lock.json
+!/vite.config.js
+!/vitest.config.js
+!/src/
+!/src/**
+!/public/
+!/public/**
+!/.agent/
+!/.agent/**
+!/.github/
+!/.github/**
+
+# Ignorar dependencias y compilación
+node_modules/
+dist/
+.vite/
